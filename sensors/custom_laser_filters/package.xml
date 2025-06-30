@@ -1,0 +1,22 @@
+<package format="3">
+  <name>custom_laser_filters</name>
+  <description>
+    Additional plugin for laser filters
+  </description>
+  <version>0.0.0</version>
+  <maintainer email="thk@dummy.com">THK</maintainer>
+  <author>THK</author>
+  <license>BSD</license>
+
+  <build_depend>ament_cmake_auto</build_depend>
+
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>filters</depend>
+  <depend>angles</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

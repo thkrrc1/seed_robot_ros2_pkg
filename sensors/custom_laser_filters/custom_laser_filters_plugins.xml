@@ -1,0 +1,10 @@
+<class_libraries>
+  <library path="custom_laser_filters">
+    <class name="custom_laser_filters/EdgeEffectFilter" type="custom_laser_filters::EdgeEffectFilter"
+      base_class_type="filters::FilterBase&lt;sensor_msgs::msg::LaserScan&gt;">
+      <description>
+        This is a filter which filters points from a laser scan that look like the veiling effect.
+      </description>
+    </class>
+  </library>
+</class_libraries>

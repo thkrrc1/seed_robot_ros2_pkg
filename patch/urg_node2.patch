@@ -1,0 +1,33 @@
+--- sensors/urg_node2/src/urg_node2.cpp
++++ sensors/urg_node2/src/urg_node2.cpp
+@@ -509,7 +509,6 @@
+       if (error_count_ > error_limit_) {
+         RCLCPP_ERROR(get_logger(), "Error count exceeded limit, reconnecting.");
+         // 再接続処理
+-        is_measurement_started_ = false;
+         reconnect();
+         reconnect_count_++;
+         break;
+
+--- sensors/urg_node2/config/params_ether.yaml
++++ sensors/urg_node2/config/params_ether.yaml
+@@ -2,7 +2,7 @@
+   ros__parameters:
+     ip_address: '192.168.0.10'
+     ip_port: 10940
+-    frame_id : 'laser'
++    frame_id : 'wheels_base_laser_link'
+     calibrate_time : false
+     synchronize_time : false
+     publish_intensity : false
+@@ -12,7 +12,7 @@
+     diagnostics_tolerance : 0.05
+     diagnostics_window_time : 5.0
+     time_offset : 0.0
+-    angle_min : -3.14
+-    angle_max : 3.14
++    angle_min : -2.0
++    angle_max : 2.0
+     skip : 0
+-    cluster : 1
++    cluster : 0
