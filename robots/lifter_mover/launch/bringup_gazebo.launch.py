@@ -46,7 +46,7 @@ def generate_launch_description() -> LaunchDescription:
     use_localization_arg = DeclareLaunchArgument('use_localization', default_value='true')
     
     robot_description_content = Command([
-        PathJoinSubstitution(FindExecutable(name="xacro")),
+        FindExecutable(name="xacro"),
         " ",
         PathJoinSubstitution([robot_pkg, "gazebo", "urdf", "gazebo.urdf.xacro"])
         ])
