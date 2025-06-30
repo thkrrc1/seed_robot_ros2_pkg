@@ -1,0 +1,34 @@
+usb_settings:
+   - 
+      port: /dev/aero_lower
+      baudrate: 1000000
+      mslist: [lower_ms]
+
+converter_lib: seed_converter/LifterMover
+
+ms_settings:
+   lower_ms:
+      msid: 1
+      joints:
+         - 
+           name: knee_joint
+           aero_idx: 1
+         - 
+           name: ankle_joint
+           aero_idx: 0
+         - 
+           name: wheel_front_left
+           aero_idx: 4
+           enc_range : [-13602,13602]
+         - 
+           name: wheel_front_right
+           aero_idx: 2
+           enc_range : [-13602,13602]
+         - 
+           name: wheel_rear_left
+           aero_idx: 5
+           enc_range : [-13602,13602]
+         - 
+           name: wheel_rear_right
+           aero_idx: 3
+           enc_range : [-13602,13602]

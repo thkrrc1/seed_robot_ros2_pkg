@@ -1,0 +1,5 @@
+<library path="lifter_mover_stroke_converter">
+  <class name="seed_converter/LifterMover"  type="seed_converter::LifterMover" base_class_type="seed_converter::StrokeConverter">
+    <description>LifterMover stroke converter plugin.</description>
+  </class>
+</library>
