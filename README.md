@@ -56,6 +56,7 @@
     $ sudo apt install ros-jazzy-nav2-bringup
     $ sudo apt-get install ros-jazzy-laser-proc
     $ sudo apt-get install ros-jazzy-laser-filters
+    $ sudo apt-get install ros-jazzy-gz-ros2-control
     ```
 4. パッチの適用
     ```
