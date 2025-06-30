@@ -1,0 +1,7 @@
+<library path="config_controller">
+  <class name="config_controller/ConfigController" type="config_controller::ConfigController" base_class_type="controller_interface::ControllerInterface">
+    <description>
+      config controller
+    </description>
+  </class>
+</library>

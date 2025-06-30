@@ -1,0 +1,8 @@
+<library path="mechanum_controller">
+  <class name="mechanum_controller/MechanumController"
+         type="mechanum_controller::MechanumController" base_class_type="controller_interface::ControllerInterface">
+  <description>
+        This controller enables you to control mechanum wheel omni-direction robot.
+  </description>
+  </class>
+</library>

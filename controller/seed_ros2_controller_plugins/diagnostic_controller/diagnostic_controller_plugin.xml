@@ -1,0 +1,7 @@
+<library path="diagnostic_controller">
+  <class name="diagnostic_controller/DiagnosticController" type="diagnostic_controller::DiagnosticController" base_class_type="controller_interface::ControllerInterface">
+  <description>
+    diagnostic controller
+  </description>
+  </class>
+</library>

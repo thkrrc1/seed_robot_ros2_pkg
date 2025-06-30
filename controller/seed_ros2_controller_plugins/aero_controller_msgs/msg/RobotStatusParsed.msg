@@ -1,0 +1,10 @@
+uint8 aero_idx
+uint8 active
+uint8 connection
+uint8 org
+uint8 moter_state
+uint8 temperature_state
+uint8 response
+uint8 step_out
+uint8 protection_stop
+uint8 power_failure

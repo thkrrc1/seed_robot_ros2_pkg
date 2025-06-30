@@ -1,0 +1,13 @@
+#pragma once
+
+#ifndef REVISION
+#define REVISION "@REVISION@"
+#endif
+
+#ifndef VERSION
+#define VERSION "@VERSION@"
+#endif
+
+#ifndef PACKAGE
+#define PACKAGE "@PROJECT_NAME@"
+#endif

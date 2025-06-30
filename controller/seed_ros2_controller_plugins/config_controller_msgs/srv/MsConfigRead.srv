@@ -1,0 +1,5 @@
+uint8 msid      # 送信先MSID
+uint16 address  # 読み込みアドレス
+uint8 size     # 読み込みサイズ
+---
+uint8[] data    # データ

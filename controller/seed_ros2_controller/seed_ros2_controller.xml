@@ -1,0 +1,12 @@
+<library path="seed_ros2_controller">
+  <class name="seed_ros2_controller/RobotHardware" type="seed_ros2_controller::RobotHardware" base_class_type="hardware_interface::SystemInterface">
+    <description>
+      The base package for controlling seed robot.
+    </description>
+  </class>
+  <class name="seed_ros2_controller/RobotHardware"
+         type="seed_ros2_controller::RobotHardware"
+         base_class_type="gz_ros2_control::GazeboSimSystemInterface">
+    <description>Seed robot hardware interface</description>
+  </class>
+</library>

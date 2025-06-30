@@ -1,0 +1,5 @@
+ScriptReqJNameInterf[] jname_interf # 関節名指定
+ScriptReqJNoInterf[] jno_interf # 関節番号指定
+float32 timeout_sec
+---
+ScriptResJoint[] jres

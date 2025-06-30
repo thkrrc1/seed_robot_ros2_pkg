@@ -1,0 +1,19 @@
+# ロボット状態 : 8-9byte, status.data[1:2]
+# status.data[1]
+uint8 system
+uint8 charging
+uint8 power_supply
+uint8 ssr
+uint8 servo
+uint8 overcurrent1
+uint8 overcurrent2
+uint8 blank_1
+# status.data[2]
+uint8 aerocom
+uint8 scenario
+uint8 blank_2
+uint8 blank_3
+uint8 protection_stop_soft
+uint8 protection_stop_hard
+uint8 emergency_stop_soft
+uint8 emergency_stop_hard

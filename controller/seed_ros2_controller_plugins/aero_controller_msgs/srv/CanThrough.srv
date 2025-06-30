@@ -1,0 +1,4 @@
+uint8 msid      # 送信先MSID
+uint8 mcid     # 送信先MCID
+uint8[] data    # 書き込みデータ
+---

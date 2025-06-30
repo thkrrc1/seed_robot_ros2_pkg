@@ -1,0 +1,6 @@
+uint8 SERVO_OFF = 0
+uint8 SERVO_ON = 1
+
+uint8 type
+uint8 msid # 0の場合は、全ms
+---

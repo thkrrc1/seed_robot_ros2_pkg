@@ -1,0 +1,21 @@
+<library path="aero_controller">
+
+  <class name="aero_controller/AeroController" type="aero_controller::AeroController" base_class_type="controller_interface::ControllerInterface">
+    <description>
+      aero controller
+    </description>
+  </class>
+
+  <class name="aero_controller/StatusController" type="aero_controller::StatusController" base_class_type="controller_interface::ControllerInterface">
+    <description>
+      status controller
+    </description>
+  </class>
+
+  <class name="aero_controller/RobotStatusController" type="aero_controller::RobotStatusController" base_class_type="controller_interface::ControllerInterface">
+    <description>
+      robotstatus controller
+    </description>
+  </class>
+
+</library>

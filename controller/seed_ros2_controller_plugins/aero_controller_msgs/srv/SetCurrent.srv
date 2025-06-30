@@ -1,0 +1,4 @@
+string[] joint_name
+uint8[] max # 発揮可能な最大電流
+uint8[] min # 待機時に現在姿勢を維持するための電流
+---
