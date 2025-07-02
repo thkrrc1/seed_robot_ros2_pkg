@@ -87,6 +87,6 @@ $ sudo apt install ros-jazzy-rqt-joint-trajectory-controller
 ```
 - ros2_control関係
 ```terminal
-$ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-asssets ros-jazzy-ros2-control 
+$ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets ros-jazzy-ros2-control 
 ```
 
