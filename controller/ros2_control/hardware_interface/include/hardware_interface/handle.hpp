@@ -15,6 +15,8 @@
 #ifndef HARDWARE_INTERFACE__HANDLE_HPP_
 #define HARDWARE_INTERFACE__HANDLE_HPP_
 
+#include <fmt/compile.h>
+
 #include <algorithm>
 #include <atomic>
 #include <functional>
@@ -29,6 +31,7 @@
 
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/introspection.hpp"
+#include "hardware_interface/lexical_casts.hpp"
 #include "hardware_interface/macros.hpp"
 
 namespace
@@ -53,10 +56,7 @@ class Handle
 {
 public:
   [[deprecated("Use InterfaceDescription for initializing the Interface")]]
-
-  Handle(
-    const std::string & prefix_name, const std::string & interface_name,
-    double * value_ptr = nullptr)
+  Handle(const std::string & prefix_name, const std::string & interface_name, double * value_ptr)
   : prefix_name_(prefix_name),
     interface_name_(interface_name),
     handle_name_(prefix_name_ + "/" + interface_name_),
@@ -64,30 +64,54 @@ public:
   {
   }
 
-  explicit Handle(const InterfaceDescription & interface_description)
-  : prefix_name_(interface_description.get_prefix_name()),
-    interface_name_(interface_description.get_interface_name()),
-    handle_name_(interface_description.get_name())
+  explicit Handle(
+    const std::string & prefix_name, const std::string & interface_name,
+    const std::string & data_type = "double", const std::string & initial_value = "")
+  : prefix_name_(prefix_name),
+    interface_name_(interface_name),
+    handle_name_(prefix_name_ + "/" + interface_name_),
+    data_type_(data_type)
   {
-    data_type_ = interface_description.get_data_type();
     // As soon as multiple datatypes are used in HANDLE_DATATYPE
     // we need to initialize according the type passed in interface description
     if (data_type_ == hardware_interface::HandleDataType::DOUBLE)
     {
-      value_ = std::numeric_limits<double>::quiet_NaN();
-      value_ptr_ = std::get_if<double>(&value_);
+      try
+      {
+        value_ = initial_value.empty() ? std::numeric_limits<double>::quiet_NaN()
+                                       : hardware_interface::stod(initial_value);
+        value_ptr_ = std::get_if<double>(&value_);
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE(
+              "Invalid initial value : '{}' parsed for interface : '{}' with type : '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
     }
     else if (data_type_ == hardware_interface::HandleDataType::BOOL)
     {
       value_ptr_ = nullptr;
-      value_ = false;
+      value_ = initial_value.empty() ? false : hardware_interface::parse_bool(initial_value);
     }
     else
     {
       throw std::runtime_error(
-        "Invalid data type : '" + interface_description.interface_info.data_type +
-        "' for interface : " + interface_description.get_name());
+        fmt::format(
+          FMT_COMPILE(
+            "Invalid data type : '{}' for interface : {}. Supported types are double and bool."),
+          data_type, handle_name_));
     }
+  }
+
+  explicit Handle(const InterfaceDescription & interface_description)
+  : Handle(
+      interface_description.get_prefix_name(), interface_description.get_interface_name(),
+      interface_description.get_data_type_string(),
+      interface_description.interface_info.initial_value)
+  {
   }
 
   [[deprecated("Use InterfaceDescription for initializing the Interface")]]
@@ -207,8 +231,9 @@ public:
     catch (const std::bad_variant_access & err)
     {
       throw std::runtime_error(
-        "Invalid data type : '" + get_type_name<T>() + "' access for interface : " + get_name() +
-        " expected : '" + data_type_.to_string() + "'");
+        fmt::format(
+          FMT_COMPILE("Invalid data type : '{}' access for interface : {} expected : '{}'"),
+          get_type_name<T>(), get_name(), data_type_.to_string()));
     }
     // END
   }
@@ -252,8 +277,9 @@ public:
       catch (const std::bad_variant_access & err)
       {
         throw std::runtime_error(
-          "Invalid data type : '" + get_type_name<T>() + "' access for interface : " + get_name() +
-          " expected : '" + data_type_.to_string() + "'");
+          fmt::format(
+            FMT_COMPILE("Invalid data type : '{}' access for interface : {} expected : '{}'"),
+            get_type_name<T>(), get_name(), data_type_.to_string()));
       }
     }
     return true;
@@ -310,8 +336,9 @@ public:
       if (!std::holds_alternative<T>(value_))
       {
         throw std::runtime_error(
-          "Invalid data type : '" + get_type_name<T>() + "' access for interface : " + get_name() +
-          " expected : '" + data_type_.to_string() + "'");
+          fmt::format(
+            FMT_COMPILE("Invalid data type : '{}' access for interface : {} expected : '{}'"),
+            get_type_name<T>(), get_name(), data_type_.to_string()));
       }
       value_ = value;
     }
@@ -394,15 +421,19 @@ public:
 
   StateInterface(StateInterface && other) = default;
 
-  using Handle::Handle;
-
-  using SharedPtr = std::shared_ptr<StateInterface>;
-  using ConstSharedPtr = std::shared_ptr<const StateInterface>;
-
   template<class T>
   void delegate(T func) const{
     func(get_prefix_name(), value_ptr_);
   }
+
+// Disable deprecated warnings
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  using Handle::Handle;
+#pragma GCC diagnostic pop
+
+  using SharedPtr = std::shared_ptr<StateInterface>;
+  using ConstSharedPtr = std::shared_ptr<const StateInterface>;
 };
 
 class CommandInterface : public Handle
@@ -469,7 +500,11 @@ public:
     }
   }
 
+// Disable deprecated warnings
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   using Handle::Handle;
+#pragma GCC diagnostic pop
 
   using SharedPtr = std::shared_ptr<CommandInterface>;
 

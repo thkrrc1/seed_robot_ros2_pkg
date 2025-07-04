@@ -20,8 +20,11 @@
 #include <vector>
 
 #include "gmock/gmock.h"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include "hardware_interface/loaned_command_interface.hpp"
 #include "hardware_interface/loaned_state_interface.hpp"
+#pragma GCC diagnostic pop
 #include "hardware_interface/resource_manager.hpp"
 #include "hardware_interface/types/lifecycle_state_names.hpp"
 #include "lifecycle_msgs/msg/state.hpp"
@@ -892,7 +895,7 @@ void generic_system_functional_test(
   ASSERT_EQ(0.44, j2v_c.get_optional().value());
 
   // write() does not change values
-  ASSERT_TRUE(rm.write(TIME, PERIOD).ok);
+  EXPECT_EQ(rm.write(TIME, PERIOD).result, hardware_interface::return_type::OK);
   ASSERT_EQ(3.45, j1p_s.get_optional().value());
   ASSERT_EQ(0.0, j1v_s.get_optional().value());
   ASSERT_EQ(2.78, j2p_s.get_optional().value());
@@ -903,7 +906,7 @@ void generic_system_functional_test(
   ASSERT_EQ(0.44, j2v_c.get_optional().value());
 
   // read() mirrors commands + offset to states
-  ASSERT_TRUE(rm.read(TIME, PERIOD).ok);
+  EXPECT_EQ(rm.read(TIME, PERIOD).result, hardware_interface::return_type::OK);
   ASSERT_EQ(0.11 + offset, j1p_s.get_optional().value());
   ASSERT_EQ(0.22, j1v_s.get_optional().value());
   ASSERT_EQ(0.33 + offset, j2p_s.get_optional().value());
@@ -998,7 +1001,7 @@ void generic_system_error_group_test(
   ASSERT_EQ(0.44, j2v_c.get_optional().value());
 
   // write() does not change values
-  ASSERT_TRUE(rm.write(TIME, PERIOD).ok);
+  EXPECT_EQ(rm.write(TIME, PERIOD).result, hardware_interface::return_type::OK);
   ASSERT_EQ(3.45, j1p_s.get_optional().value());
   ASSERT_EQ(0.0, j1v_s.get_optional().value());
   ASSERT_EQ(2.78, j2p_s.get_optional().value());
@@ -1009,7 +1012,7 @@ void generic_system_error_group_test(
   ASSERT_EQ(0.44, j2v_c.get_optional().value());
 
   // read() mirrors commands to states
-  ASSERT_TRUE(rm.read(TIME, PERIOD).ok);
+  EXPECT_EQ(rm.read(TIME, PERIOD).result, hardware_interface::return_type::OK);
   ASSERT_EQ(0.11, j1p_s.get_optional().value());
   ASSERT_EQ(0.22, j1v_s.get_optional().value());
   ASSERT_EQ(0.33, j2p_s.get_optional().value());
@@ -1040,7 +1043,7 @@ void generic_system_error_group_test(
   ASSERT_TRUE(j1v_c.set_value(std::numeric_limits<double>::infinity()));
   // read() should now bring error in the first component
   auto read_result = rm.read(TIME, PERIOD);
-  ASSERT_FALSE(read_result.ok);
+  EXPECT_EQ(read_result.result, hardware_interface::return_type::ERROR);
   if (validate_same_group)
   {
     // If they belong to the same group, show the error in all hardware components of same group
@@ -1076,12 +1079,12 @@ void generic_system_error_group_test(
   // Error should be recoverable only after reactivating the hardware component
   ASSERT_TRUE(j1p_c.set_value(0.0));
   ASSERT_TRUE(j1v_c.set_value(0.0));
-  ASSERT_FALSE(rm.read(TIME, PERIOD).ok);
+  EXPECT_EQ(rm.read(TIME, PERIOD).result, hardware_interface::return_type::ERROR);
 
   // Now it should be recoverable
   deactivate_components(rm, {component1});
   activate_components(rm, {component1});
-  ASSERT_TRUE(rm.read(TIME, PERIOD).ok);
+  EXPECT_EQ(rm.read(TIME, PERIOD).result, hardware_interface::return_type::OK);
 
   deactivate_components(rm, {component1, component2});
   status_map = rm.get_components_status();

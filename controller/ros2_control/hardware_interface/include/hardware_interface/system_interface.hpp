@@ -15,6 +15,8 @@
 #ifndef HARDWARE_INTERFACE__SYSTEM_INTERFACE_HPP_
 #define HARDWARE_INTERFACE__SYSTEM_INTERFACE_HPP_
 
+#include <fmt/compile.h>
+
 #include <limits>
 #include <memory>
 #include <string>
@@ -380,12 +382,10 @@ public:
    *
    * \note This is a non-realtime evaluation of whether a set of command interface claims are
    * possible, and call to start preparing data structures for the upcoming switch that will occur.
-   * \note All starting and stopping interface keys are passed to all components, so the function
-   * should return return_type::OK by default when given interface keys not relevant for this
-   * component. \param[in] start_interfaces vector of string identifiers for the command interfaces
-   * starting. \param[in] stop_interfaces vector of string identifiers for the command interfaces
-   * stopping. \return return_type::OK if the new command interface combination can be prepared, or
-   * if the interface key is not relevant to this system. Returns return_type::ERROR otherwise.
+   * \param[in] start_interfaces vector of string identifiers for the command interfaces starting.
+   * \param[in] stop_interfaces vector of string identifiers for the command interfaces stopping.
+   * \return return_type::OK if the new command interface combination can be prepared (or) if the
+   * interface key is not relevant to this system. Returns return_type::ERROR otherwise.
    */
   virtual return_type prepare_command_mode_switch(
     const std::vector<std::string> & /*start_interfaces*/,
@@ -399,12 +399,10 @@ public:
    * Perform the mode-switching for the new command interface combination.
    *
    * \note This is part of the realtime update loop, and should be fast.
-   * \note All starting and stopping interface keys are passed to all components, so the function
-   * should return return_type::OK by default when given interface keys not relevant for this
-   * component. \param[in] start_interfaces vector of string identifiers for the command interfaces
-   * starting. \param[in] stop_interfaces vector of string identifiers for the command interfaces
-   * stopping. \return return_type::OK if the new command interface combination can be switched to,
-   * or if the interface key is not relevant to this system. Returns return_type::ERROR otherwise.
+   * \param[in] start_interfaces vector of string identifiers for the command interfaces starting.
+   * \param[in] stop_interfaces vector of string identifiers for the command interfaces stopping.
+   * \return return_type::OK if the new command interface combination can be switched to (or) if the
+   * interface key is not relevant to this system. Returns return_type::ERROR otherwise.
    */
   virtual return_type perform_command_mode_switch(
     const std::vector<std::string> & /*start_interfaces*/,
@@ -554,8 +552,11 @@ public:
     if (it == system_states_.end())
     {
       throw std::runtime_error(
-        "State interface not found: " + interface_name +
-        " in system hardware component: " + info_.name + ". This should not happen.");
+        fmt::format(
+          FMT_COMPILE(
+            "State interface not found: {} in system hardware component: {}. "
+            "This should not happen."),
+          interface_name, info_.name));
     }
     auto & handle = it->second;
     std::unique_lock<std::shared_mutex> lock(handle->get_mutex());
@@ -569,8 +570,11 @@ public:
     if (it == system_states_.end())
     {
       throw std::runtime_error(
-        "State interface not found: " + interface_name +
-        " in system hardware component: " + info_.name + ". This should not happen.");
+        fmt::format(
+          FMT_COMPILE(
+            "State interface not found: {} in system hardware component: {}. "
+            "This should not happen."),
+          interface_name, info_.name));
     }
     auto & handle = it->second;
     std::shared_lock<std::shared_mutex> lock(handle->get_mutex());
@@ -578,20 +582,25 @@ public:
     if (!opt_value)
     {
       throw std::runtime_error(
-        "Failed to get state value from interface: " + interface_name +
-        ". This should not happen.");
+        fmt::format(
+          FMT_COMPILE("Failed to get state value from interface: {}. This should not happen."),
+          interface_name));
     }
     return opt_value.value();
   }
 
-  void set_command(const std::string & interface_name, const double & value)
+  template <typename T>
+  void set_command(const std::string & interface_name, const T & value)
   {
     auto it = system_commands_.find(interface_name);
     if (it == system_commands_.end())
     {
       throw std::runtime_error(
-        "Command interface not found: " + interface_name +
-        " in system hardware component: " + info_.name + ". This should not happen.");
+        fmt::format(
+          FMT_COMPILE(
+            "Command interface not found: {} in system hardware component: {}. "
+            "This should not happen."),
+          interface_name, info_.name));
     }
     auto & handle = it->second;
     std::unique_lock<std::shared_mutex> lock(handle->get_mutex());
@@ -605,8 +614,11 @@ public:
     if (it == system_commands_.end())
     {
       throw std::runtime_error(
-        "Command interface not found: " + interface_name +
-        " in system hardware component: " + info_.name + ". This should not happen.");
+        fmt::format(
+          FMT_COMPILE(
+            "Command interface not found: {} in system hardware component: {}. "
+            "This should not happen."),
+          interface_name, info_.name));
     }
     auto & handle = it->second;
     std::shared_lock<std::shared_mutex> lock(handle->get_mutex());
@@ -614,8 +626,9 @@ public:
     if (!opt_value)
     {
       throw std::runtime_error(
-        "Failed to get command value from interface: " + interface_name +
-        ". This should not happen.");
+        fmt::format(
+          FMT_COMPILE("Failed to get command value from interface: {}. This should not happen."),
+          interface_name));
     }
     return opt_value.value();
   }

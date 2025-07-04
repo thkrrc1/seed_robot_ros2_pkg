@@ -2,6 +2,33 @@
 Changelog for package hardware_interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+4.32.0 (2025-06-06)
+-------------------
+* also use std::mutex on macOS (`#2313 <https://github.com/ros-controls/ros2_control/issues/2313>`_) (`#2315 <https://github.com/ros-controls/ros2_control/issues/2315>`_)
+* Use std::mutex on windows (`#2311 <https://github.com/ros-controls/ros2_control/issues/2311>`_) (`#2312 <https://github.com/ros-controls/ros2_control/issues/2312>`_)
+* Contributors: mergify[bot]
+
+4.31.0 (2025-05-24)
+-------------------
+* [RM] Isolate start and stop interfaces for each Hardware Component (backport `#2120 <https://github.com/ros-controls/ros2_control/issues/2120>`_) (`#2273 <https://github.com/ros-controls/ros2_control/issues/2273>`_)
+* Add `data_type` field to the HardwareInterfaces message (backport `#2204 <https://github.com/ros-controls/ros2_control/issues/2204>`_) (`#2232 <https://github.com/ros-controls/ros2_control/issues/2232>`_)
+* Add new `Handle` constructor for easier initialization (`#2253 <https://github.com/ros-controls/ros2_control/issues/2253>`_) (`#2270 <https://github.com/ros-controls/ros2_control/issues/2270>`_)
+* Use target_link_libraries instead of ament_target_dependencies (`#2266 <https://github.com/ros-controls/ros2_control/issues/2266>`_) (`#2271 <https://github.com/ros-controls/ros2_control/issues/2271>`_)
+* Read `data_type` for all types of interfaces (`#2235 <https://github.com/ros-controls/ros2_control/issues/2235>`_) (`#2261 <https://github.com/ros-controls/ros2_control/issues/2261>`_)
+* Contributors: mergify[bot]
+
+4.30.0 (2025-05-21)
+-------------------
+* Statically allocate string concatenations using FMT formatting (`#2205 <https://github.com/ros-controls/ros2_control/issues/2205>`_) (`#2249 <https://github.com/ros-controls/ros2_control/issues/2249>`_)
+* Suppress the deprecation warnings of the hardware_interface API (`#2223 <https://github.com/ros-controls/ros2_control/issues/2223>`_) (`#2247 <https://github.com/ros-controls/ros2_control/issues/2247>`_)
+* Contributors: mergify[bot]
+
+4.29.0 (2025-05-04)
+-------------------
+* [Diagnostics] Add diagnostics of execution time and periodicity of the hardware components (`#2086 <https://github.com/ros-controls/ros2_control/issues/2086>`_)
+* Add common reusable helper methods header (`#2099 <https://github.com/ros-controls/ros2_control/issues/2099>`_)
+* Contributors: Sai Kishor Kothakota
+
 4.28.1 (2025-04-17)
 -------------------
 * Avoid running joint limit enforcement during initialization (`#2188 <https://github.com/ros-controls/ros2_control/issues/2188>`_)

@@ -82,24 +82,28 @@ class DummyActuator : public hardware_interface::ActuatorInterface
   {
     // We can read a position and a velocity
     std::vector<hardware_interface::StateInterface> state_interfaces;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     state_interfaces.emplace_back(
       hardware_interface::StateInterface(
         "joint1", hardware_interface::HW_IF_POSITION, &position_state_));
     state_interfaces.emplace_back(
       hardware_interface::StateInterface(
         "joint1", hardware_interface::HW_IF_VELOCITY, &velocity_state_));
-
+#pragma GCC diagnostic pop
     return state_interfaces;
   }
 
   std::vector<hardware_interface::CommandInterface> export_command_interfaces() override
   {
     // We can command in velocity
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     std::vector<hardware_interface::CommandInterface> command_interfaces;
     command_interfaces.emplace_back(
       hardware_interface::CommandInterface(
         "joint1", hardware_interface::HW_IF_VELOCITY, &velocity_command_));
-
+#pragma GCC diagnostic pop
     return command_interfaces;
   }
 
@@ -273,9 +277,11 @@ class DummySensor : public hardware_interface::SensorInterface
   {
     // We can read some voltage level
     std::vector<hardware_interface::StateInterface> state_interfaces;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     state_interfaces.emplace_back(
       hardware_interface::StateInterface("sens1", "voltage", &voltage_level_));
-
+#pragma GCC diagnostic pop
     return state_interfaces;
   }
 
@@ -473,6 +479,8 @@ class DummySystem : public hardware_interface::SystemInterface
   {
     // We can read a position and a velocity
     std::vector<hardware_interface::StateInterface> state_interfaces;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     state_interfaces.emplace_back(
       hardware_interface::StateInterface(
         "joint1", hardware_interface::HW_IF_POSITION, &position_state_[0]));
@@ -491,7 +499,7 @@ class DummySystem : public hardware_interface::SystemInterface
     state_interfaces.emplace_back(
       hardware_interface::StateInterface(
         "joint3", hardware_interface::HW_IF_VELOCITY, &velocity_state_[2]));
-
+#pragma GCC diagnostic pop
     return state_interfaces;
   }
 
@@ -499,6 +507,8 @@ class DummySystem : public hardware_interface::SystemInterface
   {
     // We can command in velocity
     std::vector<hardware_interface::CommandInterface> command_interfaces;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     command_interfaces.emplace_back(
       hardware_interface::CommandInterface(
         "joint1", hardware_interface::HW_IF_VELOCITY, &velocity_command_[0]));
@@ -508,7 +518,7 @@ class DummySystem : public hardware_interface::SystemInterface
     command_interfaces.emplace_back(
       hardware_interface::CommandInterface(
         "joint3", hardware_interface::HW_IF_VELOCITY, &velocity_command_[2]));
-
+#pragma GCC diagnostic pop
     return command_interfaces;
   }
 
@@ -1174,7 +1184,26 @@ TEST(TestComponentInterfaces, dummy_system)
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::INACTIVE, state.label());
 
-  // Read and Write are working because it is INACTIVE
+  // Values should 0 because only read should work when INACTIVE
+  for (auto step = 0u; step < 10; ++step)
+  {
+    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
+
+    EXPECT_EQ(0, state_interfaces[0]->get_optional().value());  // position value
+    EXPECT_EQ(0, state_interfaces[1]->get_optional().value());  // velocity
+    EXPECT_EQ(0, state_interfaces[2]->get_optional().value());  // position value
+    EXPECT_EQ(0, state_interfaces[3]->get_optional().value());  // velocity
+    EXPECT_EQ(0, state_interfaces[4]->get_optional().value());  // position value
+    EXPECT_EQ(0, state_interfaces[5]->get_optional().value());  // velocity
+
+    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
+  }
+
+  state = system_hw.activate();
+  EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
+  EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+
+  // Read and Write are working because it is ACTIVE
   for (auto step = 0u; step < 10; ++step)
   {
     ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
@@ -1192,31 +1221,6 @@ TEST(TestComponentInterfaces, dummy_system)
     ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
   }
 
-  state = system_hw.activate();
-  EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
-  EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
-
-  // Read and Write are working because it is ACTIVE
-  for (auto step = 0u; step < 10; ++step)
-  {
-    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
-
-    EXPECT_EQ(
-      (10 + step) * velocity_value,
-      state_interfaces[0]->get_optional().value());                          // position value
-    EXPECT_EQ(velocity_value, state_interfaces[1]->get_optional().value());  // velocity
-    EXPECT_EQ(
-      (10 + step) * velocity_value,
-      state_interfaces[2]->get_optional().value());                          // position value
-    EXPECT_EQ(velocity_value, state_interfaces[3]->get_optional().value());  // velocity
-    EXPECT_EQ(
-      (10 + step) * velocity_value,
-      state_interfaces[4]->get_optional().value());                          // position value
-    EXPECT_EQ(velocity_value, state_interfaces[5]->get_optional().value());  // velocity
-
-    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
-  }
-
   state = system_hw.shutdown();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
@@ -1226,11 +1230,11 @@ TEST(TestComponentInterfaces, dummy_system)
   {
     ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
 
-    EXPECT_EQ(20 * velocity_value, state_interfaces[0]->get_optional().value());  // position value
+    EXPECT_EQ(10 * velocity_value, state_interfaces[0]->get_optional().value());  // position value
     EXPECT_EQ(0.0, state_interfaces[1]->get_optional().value());                  // velocity
-    EXPECT_EQ(20 * velocity_value, state_interfaces[2]->get_optional().value());  // position value
+    EXPECT_EQ(10 * velocity_value, state_interfaces[2]->get_optional().value());  // position value
     EXPECT_EQ(0.0, state_interfaces[3]->get_optional().value());                  // velocity
-    EXPECT_EQ(20 * velocity_value, state_interfaces[4]->get_optional().value());  // position value
+    EXPECT_EQ(10 * velocity_value, state_interfaces[4]->get_optional().value());  // position value
     EXPECT_EQ(0.0, state_interfaces[5]->get_optional().value());                  // velocity
 
     ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
@@ -1379,7 +1383,26 @@ TEST(TestComponentInterfaces, dummy_system_default)
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::INACTIVE, state.label());
 
-  // Read and Write are working because it is INACTIVE
+  // Values should 0 because only read should work when INACTIVE
+  for (auto step = 0u; step < 10; ++step)
+  {
+    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
+
+    EXPECT_EQ(0, state_interfaces[si_joint1_pos]->get_optional().value());  // position value
+    EXPECT_EQ(0, state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
+    EXPECT_EQ(0, state_interfaces[si_joint2_pos]->get_optional().value());  // position value
+    EXPECT_EQ(0, state_interfaces[si_joint2_vel]->get_optional().value());  // velocity
+    EXPECT_EQ(0, state_interfaces[si_joint3_pos]->get_optional().value());  // position value
+    EXPECT_EQ(0, state_interfaces[si_joint3_vel]->get_optional().value());  // velocity
+
+    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
+  }
+
+  state = system_hw.activate();
+  EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
+  EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+
+  // Read and Write are working because it is ACTIVE
   for (auto step = 0u; step < 10; ++step)
   {
     ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
@@ -1406,31 +1429,6 @@ TEST(TestComponentInterfaces, dummy_system_default)
     ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
   }
 
-  state = system_hw.activate();
-  EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
-  EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
-
-  // Read and Write are working because it is ACTIVE
-  for (auto step = 0u; step < 10; ++step)
-  {
-    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
-
-    EXPECT_EQ(
-      (10 + step) * velocity_value,
-      state_interfaces[si_joint1_pos]->get_optional().value());  // position value
-    EXPECT_EQ(velocity_value, state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
-    EXPECT_EQ(
-      (10 + step) * velocity_value,
-      state_interfaces[si_joint2_pos]->get_optional().value());  // position value
-    EXPECT_EQ(velocity_value, state_interfaces[si_joint2_vel]->get_optional().value());  // velocity
-    EXPECT_EQ(
-      (10 + step) * velocity_value,
-      state_interfaces[si_joint3_pos]->get_optional().value());  // position value
-    EXPECT_EQ(velocity_value, state_interfaces[si_joint3_vel]->get_optional().value());  // velocity
-
-    ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
-  }
-
   state = system_hw.shutdown();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
@@ -1441,15 +1439,15 @@ TEST(TestComponentInterfaces, dummy_system_default)
     ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
 
     EXPECT_EQ(
-      20 * velocity_value,
+      10 * velocity_value,
       state_interfaces[si_joint1_pos]->get_optional().value());               // position value
     EXPECT_EQ(0.0, state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
     EXPECT_EQ(
-      20 * velocity_value,
+      10 * velocity_value,
       state_interfaces[si_joint2_pos]->get_optional().value());               // position value
     EXPECT_EQ(0.0, state_interfaces[si_joint2_vel]->get_optional().value());  // velocity
     EXPECT_EQ(
-      20 * velocity_value,
+      10 * velocity_value,
       state_interfaces[si_joint3_pos]->get_optional().value());               // position value
     EXPECT_EQ(0.0, state_interfaces[si_joint3_vel]->get_optional().value());  // velocity
 
