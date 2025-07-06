@@ -67,7 +67,7 @@ def generate_launch_description():
 
     bringup_rviz(ld, robot_pkg)
 
-    read_map_yaml_file = PathJoinSubstitution([robot_pkg_path, 'config', 'navigation', 'map', 'cafe_map.yaml'])
+    read_map_yaml_file = PathJoinSubstitution([robot_pkg_path, 'config', 'navigation', 'map', 'map.yaml'])
     controllers_ready_monitor_node = Node(
         package=pkg_name,
         executable='bringup_navigation_monitor_node',
