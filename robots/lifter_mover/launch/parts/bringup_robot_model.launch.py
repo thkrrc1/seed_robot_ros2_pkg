@@ -146,13 +146,13 @@ def generate_launch_description():
     ld = LaunchDescription()
 
     ld.add_action(Node(
-        package="lifter_mover",
+        package=pkg_name,
         executable="tf_static_monitor_node",
         name="tf_static_monitor_node",
         output="screen",
     ))
     ld.add_action(Node(
-        package="lifter_mover",
+        package=pkg_name,
         executable="tf_static_ready_monitor_node",
         name="tf_static_ready_monitor_node",
         output="screen",

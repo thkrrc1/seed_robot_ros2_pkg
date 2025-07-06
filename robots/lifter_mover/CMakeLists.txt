@@ -41,8 +41,8 @@ ament_target_dependencies(
 
 install(DIRECTORY
   config
-  launch
   gazebo
+  launch
   model
   rviz
   stroke_converter/csv

@@ -35,8 +35,7 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    #robot_pkg = LaunchConfiguration("robot_pkg_path") 
-    robot_pkg = FindPackageShare('lifter_mover')
+    robot_pkg = LaunchConfiguration("robot_pkg_path") 
 
     # Get the launch directory
     bringup_dir = get_package_share_directory('nav2_bringup')
