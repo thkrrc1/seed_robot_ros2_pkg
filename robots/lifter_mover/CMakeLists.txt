@@ -11,20 +11,15 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(seed_ros2_controller REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(tf2_msgs REQUIRED)
-find_package(nav2_msgs REQUIRED)
-find_package(pal_statistics_msgs REQUIRED)
-find_package(lifecycle_msgs REQUIRED)
 find_package(ament_index_cpp REQUIRED)
-find_package(seed_ros2_controller REQUIRED)
+find_package(nav2_msgs REQUIRED)
+find_package(lifecycle_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(tf2_geometry_msgs REQUIRED)
-find_package(gz-plugin2 REQUIRED)
-find_package(gz-common5 REQUIRED)
-find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 
 find_package(gz-sim8 REQUIRED)
 set(GZ_SIM_VER ${gz-sim8_VERSION_MAJOR})
@@ -76,31 +71,11 @@ ament_export_targets(export_${PROJECT_NAME})
 
 pluginlib_export_plugin_description_file(seed_ros2_controller stroke_converter/plugin_description.xml)
 
-add_executable(lifecycle_monitor_node src/lifecycle_monitor_node.cpp)
-add_executable(gz_lifecycle_monitor_node src/gz_lifecycle_monitor_node.cpp)
-add_executable(controllers_ready_monitor_node src/controllers_ready_monitor_node.cpp)
 add_executable(tf_static_monitor_node src/tf_static_monitor_node.cpp)
 add_executable(tf_static_ready_monitor_node src/tf_static_ready_monitor_node.cpp)
-add_executable(ros2_control_ready_monitor_node src/ros2_control_ready_monitor_node.cpp)
-add_executable(amcl_state_monitor_node src/amcl_state_monitor_node.cpp)
 add_executable(save_map_client_node src/save_map_client_node.cpp)
-
-ament_target_dependencies(lifecycle_monitor_node
-  rclcpp
-  std_msgs
-  lifecycle_msgs
-)
-
-ament_target_dependencies(gz_lifecycle_monitor_node
-  rclcpp
-  std_msgs
-  lifecycle_msgs
-)
-
-ament_target_dependencies(controllers_ready_monitor_node
-  rclcpp
-  std_msgs
-)
+add_executable(bringup_navigation_monitor_node src/bringup_navigation_monitor_node.cpp)
+add_executable(amcl_state_monitor_node src/amcl_state_monitor_node.cpp)
 
 ament_target_dependencies(tf_static_monitor_node
   rclcpp
@@ -111,17 +86,7 @@ ament_target_dependencies(tf_static_monitor_node
 ament_target_dependencies(tf_static_ready_monitor_node
   rclcpp
   std_msgs
-)
-
-ament_target_dependencies(ros2_control_ready_monitor_node
-  rclcpp
-  pal_statistics_msgs
-)
-
-ament_target_dependencies(amcl_state_monitor_node
-  rclcpp
-  lifecycle_msgs
-  nav_msgs
+  ament_index_cpp
 )
 
 ament_target_dependencies(save_map_client_node
@@ -129,15 +94,22 @@ ament_target_dependencies(save_map_client_node
   nav2_msgs
 )
 
+ament_target_dependencies(bringup_navigation_monitor_node
+  rclcpp
+  sensor_msgs
+)
+
+ament_target_dependencies(amcl_state_monitor_node
+  rclcpp
+  lifecycle_msgs
+)
+
 install(TARGETS
-  lifecycle_monitor_node
-  gz_lifecycle_monitor_node
-  controllers_ready_monitor_node
   tf_static_monitor_node
   tf_static_ready_monitor_node
-  ros2_control_ready_monitor_node
-  amcl_state_monitor_node
   save_map_client_node
+  bringup_navigation_monitor_node
+  amcl_state_monitor_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

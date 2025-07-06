@@ -1,35 +1,15 @@
-import os
-import shutil
 import yaml
-import rclpy
-from distutils.util import strtobool
-import threading
-
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, TimerAction, LogInfo, RegisterEventHandler, GroupAction
-from launch.conditions import IfCondition, UnlessCondition 
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import UnlessCondition 
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.event_handlers import OnProcessStart
-from launch.substitutions import (
-    LaunchConfiguration, PathJoinSubstitution, TextSubstitution,
-    Command, FindExecutable
-)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from tf2_msgs.msg import TFMessage
-from pal_statistics_msgs.msg import StatisticsNames
-from nav_msgs.msg import Odometry, OccupancyGrid
-
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from rclpy.node import Node as RclpyNode
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy
-from std_msgs.msg import Bool
-
-import subprocess
 
 
-# rviz2の起動を行う。
 def bringup_rviz(description, robot_pkg):
     # SetEnvironmentVariable('LIBGL_ALWAYS_SOFTWARE', '1'),
     rviz_config_file = PathJoinSubstitution(
@@ -71,47 +51,38 @@ def generate_launch_description():
     
     robot_pkg = FindPackageShare(pkg_name)
     robot_pkg_path = get_package_share_directory(pkg_name)
-    
-    slam = LaunchConfiguration('slam')
-    use_localization = LaunchConfiguration('use_localization')
-
-    slam_arg = DeclareLaunchArgument('slam', default_value='false')
-    use_localization_arg = DeclareLaunchArgument('use_localization', default_value='true')
-
-    read_map_yaml_file = PathJoinSubstitution([robot_pkg, 'config', 'navigation', 'map', 'scan_map.yaml'])
-
     ld = LaunchDescription()
     
-    ld.add_action(slam_arg)
-    ld.add_action(use_localization_arg)
+    simulation = LaunchConfiguration('simulation')
+    slam_mode = LaunchConfiguration('slam')
+    change_slam_mode = LaunchConfiguration('slam_mode')
+
+    simulation_arg = DeclareLaunchArgument('simulation', default_value='false')
+    slam_mode_arg = DeclareLaunchArgument('slam', default_value='false')
+    change_slam_mode_arg = DeclareLaunchArgument('slam_mode', default_value='async')
+    
+    ld.add_action(simulation_arg)
+    ld.add_action(slam_mode_arg)
+    ld.add_action(change_slam_mode_arg)
 
     bringup_rviz(ld, robot_pkg)
 
-    ros2_control_ready_monitor_node = Node(
-        package=pkg_name,
-        executable='ros2_control_ready_monitor_node',
-        name='ros2_control_ready_monitor_node',
-        output='screen',
-        parameters=[
-            {'robot_pkg_path': robot_pkg},
-        ]
-    )
-    ld.add_action(ros2_control_ready_monitor_node)
-
+    read_map_yaml_file = PathJoinSubstitution([robot_pkg_path, 'config', 'navigation', 'map', 'cafe_map.yaml'])
     controllers_ready_monitor_node = Node(
         package=pkg_name,
-        executable='controllers_ready_monitor_node',
-        name='controllers_ready_monitor_node',
+        executable='bringup_navigation_monitor_node',
+        name='bringup_navigation_monitor_node',
         output='screen',
         parameters=[
-            {'robot_pkg_path': robot_pkg},
+            {'robot_pkg_path': robot_pkg_path},
             {'simulation': False},
-            {'slam': slam},
-            {'use_localization': use_localization},
+            {'slam': slam_mode},
             {'map': read_map_yaml_file},
         ]
     )
     ld.add_action(controllers_ready_monitor_node)
+
+    call_launch("bringup_robot_model.launch.py", ld, robot_pkg)
 
     bringup_tools_node = Node(
         package=pkg_name,
@@ -122,10 +93,8 @@ def generate_launch_description():
             {'robot_pkg_path': robot_pkg},
             {'simulation': False},
         ],
-        condition=UnlessCondition(slam)
+        condition=UnlessCondition(slam_mode)
     )
     ld.add_action(bringup_tools_node)
-
-    call_launch("bringup_robot_model.launch.py", ld, robot_pkg, extra_args={'simulation': "false",})
 
     return ld

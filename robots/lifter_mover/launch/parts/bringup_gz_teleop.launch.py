@@ -34,7 +34,6 @@ def bringup_teleop(description, robot_pkg):
 def generate_launch_description():
     launch_description = LaunchDescription()
     robot_pkg = LaunchConfiguration("robot_pkg_path") 
-    robot_pkg = FindPackageShare('lifter_mover')
     
     bringup_joy(launch_description)
     bringup_teleop(launch_description, robot_pkg)

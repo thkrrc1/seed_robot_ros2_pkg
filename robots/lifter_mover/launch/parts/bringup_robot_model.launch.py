@@ -1,25 +1,15 @@
 import os
 import shutil
 import yaml
-import threading
 import time
-import rclpy
-from distutils.util import strtobool
-
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, ExecuteProcess, TimerAction, LogInfo
-from launch.conditions import IfCondition
+from launch.actions import IncludeLaunchDescription, OpaqueFunction, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, TextSubstitution, Command, FindExecutable
+from launch.substitutions import PathJoinSubstitution, Command, FindExecutable
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-
-from tf2_msgs.msg import TFMessage
-from pal_statistics_msgs.msg import StatisticsNames
 from rclpy.node import Node as RclpyNode
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSReliabilityPolicy
-from std_msgs.msg import Bool
 
 
 def load_driver_settings(context, *args, **kwargs):
@@ -30,7 +20,7 @@ def load_driver_settings(context, *args, **kwargs):
 
 def interpret_robot_model(driver_settings_file, robot_pkg):
     robot_description_content = Command([
-        PathJoinSubstitution(FindExecutable(name="xacro")),
+        FindExecutable(name="xacro"),
         " ",
         PathJoinSubstitution([robot_pkg, "model", "lifter_mover.urdf.xacro"]),
         " ",
@@ -59,7 +49,7 @@ def call_launch(name, description, robot_pkg, delay_time=0, extra_args=None):
         PythonLaunchDescriptionSource(launch_file_path),
         launch_arguments=[(key, value) for key, value in launch_arguments.items()]
     )
-    if(delay_time != 0):
+    if delay_time != 0:
         delayed_controller_node = TimerAction(
             period=delay_time,
             actions=[action]
@@ -67,6 +57,80 @@ def call_launch(name, description, robot_pkg, delay_time=0, extra_args=None):
         description.add_action(delayed_controller_node)
     else:
         description.add_action(action)
+
+
+def launch_setup(context, *args, **kwargs):
+    pkg_name = kwargs["pkg_name"]
+    robot_pkg = FindPackageShare(pkg_name).perform(context)
+
+    controller_defs = [
+        {
+            "name": "lifter_controller",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_joint_trajectory.yaml"),
+            "remappings": []
+        },
+        {
+            "name": "joint_state_broadcaster",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_joint_state.yaml"),
+            "remappings": []
+        },
+        {
+            "name": "mechanum_controller",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_mechanum.yaml"),
+            "remappings": [("~/cmd_vel", "/cmd_vel_nav")]
+        },
+        {
+            "name": "diagnostic_controller",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_mechanum.yaml"),
+            "remappings": []
+        },
+        {
+            "name": "aero_controller",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_mechanum.yaml"),
+            "remappings": []
+        },
+        {
+            "name": "status_controller",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_mechanum.yaml"),
+            "remappings": []
+        },
+        {
+            "name": "robotstatus_controller",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_mechanum.yaml"),
+            "remappings": []
+        },
+        {
+            "name": "config_controller",
+            "param_file": os.path.join(robot_pkg, "config", "controllers", "controller_settings_mechanum.yaml"),
+            "remappings": []
+        },
+    ]
+
+    actions = []
+
+    delay_sec = 0.0
+    for ctrl in controller_defs:
+        spawner = Node(
+            package="controller_manager",
+            executable="spawner",
+            name=f"{ctrl['name']}_spawner",
+            output="screen",
+            arguments=[
+                ctrl["name"],
+                "--controller-manager", "/controller_manager",
+                "-p", ctrl["param_file"]
+            ],
+            remappings=ctrl["remappings"]
+        )
+        delayed = TimerAction(period=delay_sec, actions=[spawner])
+        actions.append(delayed)
+        delay_sec += 2.0
+
+    # controller_manager_loader_node の起動（cpp）
+    controller_names = [ctrl["name"] for ctrl in controller_defs]
+    controller_yaml_paths = [ctrl["param_file"] for ctrl in controller_defs]
+
+    return actions
 
 
 def generate_launch_description():
@@ -77,47 +141,39 @@ def generate_launch_description():
     driver_settings_raw = PathJoinSubstitution([robot_pkg, 'config', 'driver_settings.yaml'])
     driver_settings = PathJoinSubstitution([robot_pkg, 'config', 'driver_settings_tmp.yaml'])
     controller_settings = PathJoinSubstitution([robot_pkg, 'config', 'controller_settings.yaml'])
+    teleop_settings = PathJoinSubstitution([robot_pkg, 'config', 'teleop', 'teleop_settings.yaml'])
 
     ld = LaunchDescription()
 
-    tf_static_monitor_node = Node(
+    ld.add_action(Node(
         package="lifter_mover",
         executable="tf_static_monitor_node",
         name="tf_static_monitor_node",
         output="screen",
-    )
-    ld.add_action(tf_static_monitor_node)
-
-    tf_static_ready_monitor_node = Node(
+    ))
+    ld.add_action(Node(
         package="lifter_mover",
         executable="tf_static_ready_monitor_node",
         name="tf_static_ready_monitor_node",
         output="screen",
-        parameters=[{'param_path': controller_settings}],
-    )
-    ld.add_action(tf_static_ready_monitor_node)
+        parameters=[{'cm_param_path': controller_settings}, {'teleop_param_path': teleop_settings}],
+    ))
 
-    load_driver_func = OpaqueFunction(function=load_driver_settings, kwargs={
+    ld.add_action(OpaqueFunction(function=load_driver_settings, kwargs={
         "driver_settings_raw": driver_settings_raw,
         "driver_settings": driver_settings
-    })
-    ld.add_action(load_driver_func)
-
-    ld.add_action(DeclareLaunchArgument(
-        'robot_pkg_path',
-        default_value=TextSubstitution(text=robot_pkg_path),
-        description='Path to the ' + pkg_name + ' package'
-    ))
+    }))
 
     robot_description = interpret_robot_model(driver_settings, robot_pkg)
 
-    robot_state_pub_node = Node(
+    ld.add_action(Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
         name="robot_state_publisher",
         output="screen",
         parameters=[robot_description],
-    )
-    ld.add_action(robot_state_pub_node)
+    ))
+
+    ld.add_action(OpaqueFunction(function=launch_setup, kwargs={"pkg_name": pkg_name}))
 
     return ld

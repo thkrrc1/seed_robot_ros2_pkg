@@ -58,26 +58,6 @@ private:
                 "--qx 0 --qy 0 --qz 0 --qw 1 "
                 "--frame-id map --child-frame-id odom &";
             std::system(tf_cmd.c_str());
-
-            if (!simulation_) {
-                std::stringstream lidar_cmd;
-                lidar_cmd << "ros2 launch " << robot_pkg_path_
-                          << "/launch/parts/bringup_lidar.launch.py "
-                          << "robot_pkg_path:=" << robot_pkg_path_ << " &";
-                std::system(lidar_cmd.str().c_str());
-            }
-            
-            std::stringstream teleop_cmd;
-            if (simulation_) {
-                teleop_cmd << "ros2 launch " << robot_pkg_path_
-                          << "/launch/parts/bringup_gz_teleop.launch.py "
-                          << "robot_pkg_path:=" << robot_pkg_path_ << " &";
-            } else {
-                teleop_cmd << "ros2 launch " << robot_pkg_path_
-                          << "/launch/parts/bringup_teleop.launch.py "
-                          << "robot_pkg_path:=" << robot_pkg_path_ << " &";
-            }
-            std::system(teleop_cmd.str().c_str());
         }
     }
 

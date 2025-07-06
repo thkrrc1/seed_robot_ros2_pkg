@@ -1,26 +1,44 @@
 import os
 import xacro
-
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from launch.conditions import UnlessCondition 
-
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
     SetEnvironmentVariable
 )
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch.substitutions import (
     LaunchConfiguration, 
     PathJoinSubstitution, 
-    TextSubstitution,
     Command, 
     FindExecutable
 )
+from launch.conditions import UnlessCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 
+
+def call_launch(name, description, robot_pkg, extra_args=None):
+    launch_arguments = {'robot_pkg_path': PathJoinSubstitution([robot_pkg])}
+
+    if extra_args:
+        launch_arguments.update(extra_args)
+
+    launch_file_path = PathJoinSubstitution([
+        robot_pkg,
+        'launch',
+        'parts',
+        name
+    ])
+
+    action = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(launch_file_path),
+        launch_arguments=[(key, value) for key, value in launch_arguments.items()]
+    )
+
+    description.add_action(action)
+        
 
 def generate_launch_description() -> LaunchDescription:
     pkg_name = 'lifter_mover'
@@ -43,7 +61,7 @@ def generate_launch_description() -> LaunchDescription:
     world_arg = DeclareLaunchArgument("world", default_value="empty.world")
     rviz_config_arg = DeclareLaunchArgument("rviz_config", default_value=rviz_config_default)
     slam_arg = DeclareLaunchArgument('slam', default_value='True')
-    use_localization_arg = DeclareLaunchArgument('use_localization', default_value='true')
+    use_localization_arg = DeclareLaunchArgument('use_localization', default_value='True')
     
     robot_description_content = Command([
         FindExecutable(name="xacro"),
@@ -163,41 +181,35 @@ def generate_launch_description() -> LaunchDescription:
     )
     ld.add_action(rviz2_node)
 
-    gz_monitor_node = Node(
-        package='lifter_mover',
-        executable='gz_lifecycle_monitor_node',
-        name='gz_lifecycle_monitor_node',
-        output='screen'
-    )
-    ld.add_action(gz_monitor_node)
-
     read_map_yaml_file = PathJoinSubstitution([robot_pkg_path, 'config', 'navigation', 'map', 'gz_test_map.yaml'])
-    controllers_ready_monitor_node = Node(
-        package='lifter_mover',
-        executable='controllers_ready_monitor_node',
-        name='controllers_ready_monitor_node',
+
+    bringup_navigation_monitor_node = Node(
+        package=pkg_name,
+        executable='bringup_navigation_monitor_node',
+        name='bringup_navigation_monitor_node',
         output='screen',
         parameters=[
             {'robot_pkg_path': robot_pkg_path},
             {'simulation': True},
             {'slam': slam},
-            {'use_localization': use_localization},
             {'map': read_map_yaml_file},
         ]
     )
-    ld.add_action(controllers_ready_monitor_node)
+    ld.add_action(bringup_navigation_monitor_node)
 
-    initial_pose_node = Node(
-        package='lifter_mover',
+    bringup_tools_node = Node(
+        package=pkg_name,
         executable='amcl_state_monitor_node',
         name='amcl_state_monitor_node',
         output='screen',
         parameters=[
-            {'robot_pkg_path': robot_pkg_path},
+            {'robot_pkg_path': robot_pkg},
             {'simulation': True},
         ],
         condition=UnlessCondition(slam)
     )
-    ld.add_action(initial_pose_node)
+    ld.add_action(bringup_tools_node)
+
+    call_launch("bringup_gz_teleop.launch.py", ld, robot_pkg)
 
     return ld
