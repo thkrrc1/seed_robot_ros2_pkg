@@ -106,10 +106,14 @@ def launch_setup(context, *args, **kwargs):
         },
     ]
 
+    priority_controllers = ["mechanum_controller", "joint_state_broadcaster", "lifter_controller"]
+    priority_defs = [ctrl for ctrl in controller_defs if ctrl["name"] in priority_controllers]
+    non_priority_defs = [ctrl for ctrl in controller_defs if ctrl["name"] not in priority_controllers]
+
     actions = []
 
     delay_sec = 0.0
-    for ctrl in controller_defs:
+    for ctrl in priority_defs:
         spawner = Node(
             package="controller_manager",
             executable="spawner",
@@ -122,13 +126,26 @@ def launch_setup(context, *args, **kwargs):
             ],
             remappings=ctrl["remappings"]
         )
-        delayed = TimerAction(period=delay_sec, actions=[spawner])
-        actions.append(delayed)
+        actions.append(TimerAction(period=delay_sec, actions=[spawner]))
         delay_sec += 2.0
 
-    # controller_manager_loader_node の起動（cpp）
-    controller_names = [ctrl["name"] for ctrl in controller_defs]
-    controller_yaml_paths = [ctrl["param_file"] for ctrl in controller_defs]
+    non_priority_spawners = []
+    for ctrl in non_priority_defs:
+        spawner = Node(
+            package="controller_manager",
+            executable="spawner",
+            name=f"{ctrl['name']}_spawner",
+            output="screen",
+            arguments=[
+                ctrl["name"],
+                "--controller-manager", "/controller_manager",
+                "-p", ctrl["param_file"]
+            ],
+            remappings=ctrl["remappings"]
+        )
+        non_priority_spawners.append(spawner)
+
+    actions.append(TimerAction(period=delay_sec, actions=non_priority_spawners))
 
     return actions
 
