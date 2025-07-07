@@ -49,7 +49,7 @@
 2. seed_ros2_pkgをインストール
     ```terminal
     $ cd ~/ros2_ws/src
-    $ git clone -b robots/lifter_mover --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
+    $ git clone -b robots/typeg --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
     ```
 3. その他パッケージインストール
     ```
@@ -77,18 +77,18 @@
 ## 4.slamによる地図作成
 1a. Gazeboによるシミュレーション環境でslamを実行する場合
 ```terminal
- $ ros2 launch lifter_mover bringup_gazebo.launch.py slam:=true
+ $ ros2 launch typeg bringup_gazebo.launch.py slam:=true
 ```
 
 1b. 実機を使用してslamを実行する場合
 ```terminal
- $ ros2 launch lifter_mover bringup_robot.launch.py slam:=true
+ $ ros2 launch typeg bringup_robot.launch.py slam:=true
 ```
 一定時間経過するとLiDARの情報と地図が表示されるので、そこからロボットを動作させて地図作成を開始してください。
 
 2. 地図を保存する場合
 ```terminal
- $ ros2 run lifter_mover save_map_client_node --ros-args -p map_topic:=map_nav -p map_url:=（.map/.yamlのファイル名）
+ $ ros2 run typeg save_map_client_node --ros-args -p map_topic:=map_nav -p map_url:=（.map/.yamlのファイル名）
 ```
 ※地図ファイルはlaunchファイルを起動した場所に保存されます。
 
@@ -96,12 +96,12 @@
 ## 5.amclを利用した自律移動
 1a. Gazeboによるシミュレーション環境で自律移動を実行する場合
 ```terminal
- $ ros2 launch lifter_mover bringup_gazebo.launch.py slam:=false
+ $ ros2 launch typeg bringup_gazebo.launch.py slam:=false
 ```
 
 1b. 実機を使用して自律移動を実行する場合
 ```terminal
- $ ros2 launch lifter_mover bringup_robot.launch.py slam:=false
+ $ ros2 launch typeg bringup_robot.launch.py slam:=false
 ```
 一定時間経過するとLiDARの情報と地図が表示されるので、そこからロボットを動作させてください。
 
@@ -122,3 +122,8 @@ $ sudo apt install ros-jazzy-rqt-joint-trajectory-controller
 $ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets ros-jazzy-ros2-control 
 ```
 
+
+## その他 : 後日対応事項
+1. Moveit!2対応
+
+2. mechanum_controllerのGazebo対応
