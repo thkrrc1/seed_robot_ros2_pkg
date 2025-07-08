@@ -57,6 +57,7 @@
     $ sudo apt-get install ros-jazzy-laser-proc
     $ sudo apt-get install ros-jazzy-laser-filters
     $ sudo apt-get install ros-jazzy-gz-ros2-control
+    $ sudo apt-get install ros-jazzy-ros2-control-cmake
     ```
 4. パッチの適用
     ```
