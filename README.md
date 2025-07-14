@@ -64,7 +64,22 @@
     $ cd ~/ros2_ws/src/seed_robot_ros2_pkg
     $ patch -p0 < patch/urg_node2.patch
     ```
-5. ビルド
+5. ロボットプロジェクトのクローン
+    ```
+    $ cd ~/ros2_ws/src/seed_robot_ros2_pkg/robots
+    $ python3 clone_robots.py
+    ```
+    実行すると下記メッセージが表示されるので、ロボット名を入力してください。（例：lifter_mover）  
+    プロジェクトが存在する場合はクローンが開始されます。
+    ```
+    クローンしたいロボット名を入力してください：　lifter_mover
+    ```
+    
+    ※　下記メッセージが表示されている場合はクローンに失敗しています。
+    ```
+    RuntimeError: コマンド失敗
+    ```
+7. ビルド
     ```
     $ cd ~/ros2_ws
     $ colcon build --symlink-install
@@ -72,59 +87,4 @@
     $ source install/setup.bash
     ```
     
-以降は用途に応じて下記の作業に従ってください。  
-※起動に失敗する場合は一度Ctrl+Cによる終了後、プロセスが残っていないかを確認してください。
 
-## 4.slamによる地図作成
-1a. Gazeboによるシミュレーション環境でslamを実行する場合
-```terminal
- $ ros2 launch typeg bringup_gazebo.launch.py slam:=true
-```
-
-1b. 実機を使用してslamを実行する場合
-```terminal
- $ ros2 launch typeg bringup_robot.launch.py slam:=true
-```
-一定時間経過するとLiDARの情報と地図が表示されるので、そこからロボットを動作させて地図作成を開始してください。
-
-2. 地図を保存する場合
-```terminal
- $ ros2 run typeg save_map_client_node --ros-args -p map_topic:=map_nav -p map_url:=（.map/.yamlのファイル名）
-```
-※地図ファイルはlaunchファイルを起動した場所に保存されます。
-
-
-## 5.amclを利用した自律移動
-1a. Gazeboによるシミュレーション環境で自律移動を実行する場合
-```terminal
- $ ros2 launch typeg bringup_gazebo.launch.py slam:=false
-```
-
-1b. 実機を使用して自律移動を実行する場合
-```terminal
- $ ros2 launch typeg bringup_robot.launch.py slam:=false
-```
-一定時間経過するとLiDARの情報と地図が表示されるので、そこからロボットを動作させてください。
-
-※読み込ませる地図ファイルを変更する場合は、launchファイルで地図名を指定している箇所がありますので該当箇所を編集してください。
-デフォルトでは下記のように設定されています。
-  - bringup_gazebo.launch.py　→　gz_test_map.yaml
-  - bringup_robot.launch.py　→　scan_map.yaml
-
-
-## その他 : 細かいインストール(必要に応じて)
-
-- rqt-joint-trajectory-controller（lifterの関節角度を変化させる）
-```terminal
-$ sudo apt install ros-jazzy-rqt-joint-trajectory-controller 
-```
-- ros2_control関係
-```terminal
-$ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets ros-jazzy-ros2-control 
-```
-
-
-## その他 : 後日対応事項
-1. Moveit!2対応
-
-2. mechanum_controllerのGazebo対応
