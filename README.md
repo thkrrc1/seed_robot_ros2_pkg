@@ -49,7 +49,7 @@
 2. seed_ros2_pkgをインストール
     ```terminal
     $ cd ~/ros2_ws/src
-    $ git clone -b robots/typeg --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
+    $ git clone --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
     ```
 3. その他パッケージインストール
     ```
