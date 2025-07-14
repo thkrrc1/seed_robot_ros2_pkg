@@ -86,5 +86,11 @@
     $ cd ~/ros2_ws
     $ source install/setup.bash
     ```
+
+## その他 : 細かいインストール(必要に応じて)
+- ros2_control関係
+```terminal
+$ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets ros-jazzy-ros2-control 
+```
     
 
