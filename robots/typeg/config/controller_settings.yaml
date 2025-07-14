@@ -1,5 +1,0 @@
-controller_manager:
-   ros__parameters:
-      update_rate: 50 # Hz
-      lock_memory: false
-      enable_performance_metrics: true
