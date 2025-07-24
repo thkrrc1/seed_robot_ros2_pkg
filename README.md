@@ -58,6 +58,7 @@
     $ sudo apt-get install ros-jazzy-laser-filters
     $ sudo apt-get install ros-jazzy-gz-ros2-control
     $ sudo apt-get install ros-jazzy-ros2-control-cmake
+    $ sudo apt install ros-jazzy-tf-transformations
     ```
 4. パッチの適用
     ```
@@ -91,6 +92,14 @@
 - ros2_control関係
 ```terminal
 $ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets ros-jazzy-ros2-control 
+```
+
+- Gazebo関係（sim<#>にはバージョンが入ります。）
+```terminal
+$ sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
+$ wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
+$ sudo apt-get update
+$ sudo apt-get install libgz-sim<#>-dev
 ```
     
 
