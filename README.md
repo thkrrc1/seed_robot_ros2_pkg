@@ -58,7 +58,7 @@
     $ sudo apt-get install ros-jazzy-laser-filters
     $ sudo apt-get install ros-jazzy-gz-ros2-control
     $ sudo apt-get install ros-jazzy-ros2-control-cmake
-    $ sudo apt install ros-jazzy-tf-transformations
+    $ sudo apt-get install ros-jazzy-tf-transformations
     ```
 4. パッチの適用
     ```
