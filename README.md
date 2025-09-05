@@ -59,6 +59,7 @@
     $ sudo apt-get install ros-jazzy-gz-ros2-control
     $ sudo apt-get install ros-jazzy-ros2-control-cmake
     $ sudo apt-get install ros-jazzy-tf-transformations
+    $ sudo apt-get install ros-jazzy-moveit
     ```
 4. パッチの適用
     ```
