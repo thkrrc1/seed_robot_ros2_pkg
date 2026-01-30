@@ -311,7 +311,7 @@ class DummyScan(Node):
 def main(args=None):
     try:
         rclpy.init(args=args)
-        node = DummyScan("/scan_map", "/scan", "wheels_base_laser_link", "odom", 0.01, 10, -2., 2., 0.05)
+        node = DummyScan("/map", "/scan", "wheels_base_laser_link", "odom", 0.01, 10, -2., 2., 0.05)
         # executor = MultiThreadedExecutor()
         # rclpy.spin(node,executor)
         rclpy.spin(node)

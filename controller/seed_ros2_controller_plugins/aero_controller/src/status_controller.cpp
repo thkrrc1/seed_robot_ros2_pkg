@@ -1,8 +1,24 @@
 #include "status_controller.hpp"
-
+#include <iostream>
 #include "status.hpp"
 
 namespace aero_controller {
+
+static std::optional<uint64_t> hexVersionToU64(const std::string& ver_hex) {
+  std::string s;
+  for (char c : ver_hex) {
+    if (('0'<=c && c<='9') || ('a'<=c && c<='f') || ('A'<=c && c<='F')) s.push_back(c);
+  }
+  if (s.empty()) return std::nullopt;
+
+  uint64_t v = 0;
+  std::stringstream ss;
+  ss << std::hex << s;
+  ss >> v;
+  if (ss.fail()) return std::nullopt;
+  return v;
+}
+
 
 StatusController::StatusController(){
     periodic_thread = std::thread(&StatusController::periodic_send,this);
@@ -24,17 +40,30 @@ controller_interface::CallbackReturn StatusController::on_configure(const rclcpp
 }
 
 void StatusController::periodic_send(){
+    
     while (!shutdown.load()) {
-
         auto mslist = getMsList();
-        for (int &ms : mslist) {
+
+        for (int ms : mslist) {
+            auto ver_opt = getMsVersion(ms);
+            if (!ver_opt) {
+                continue;
+            }
+
+            auto fw_opt = hexVersionToU64(*ver_opt);
+            if (!fw_opt) {
+                continue;
+            }
+
+            if (*fw_opt < MIN_REQUIRED_FW) {
+                continue;
+            }
+            
             BuffRaw buff;
             makeBuff(getProtocol(ms), buff, ms);
             addSendData(ms, buff);
         }
-
-        //100[ms]ごとに要求を投げる
-        usleep(100000);
+        usleep(100000); // 100[ms]周期
     }
 }
 

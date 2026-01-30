@@ -85,6 +85,7 @@ public:
         }
         return ret;
     }
+    
 
     /**
      * MSに対する関節
@@ -105,6 +106,15 @@ public:
             ret = itr->protocol;
         }
         return ret;
+    }
+
+    std::optional<std::string> getMsVersion(int msid) const {
+      auto itr = std::find_if(
+          ports_info.begin(), ports_info.end(),
+          [&](const PortInfo& info){ return info.msid == msid; });
+    
+      if (itr == ports_info.end()) return std::nullopt;
+      return itr->handle.get_ms_version();
     }
 
 private:

@@ -8,6 +8,7 @@
 
 #include "aero3_command.hpp"
 #include "aero4_command.hpp"
+#include <iostream>
 
 class RobotDriverSingleUSB {
 public:
@@ -42,9 +43,67 @@ public:
         if(protocol == "aero4"){
             aero_command = new aero4::AeroCommand();
             aero_driver->setCommand(aero_command);
-        }else{
+            //バージョン取得　暫定処理
+            aero_driver->setMsVersionCallback(
+                [this](int msid, const std::string& ver_hex){
+                    for (auto* ms : ms_drivers) {
+                        if (ms && ms->getMsId() == msid) {
+                            LOG_INFO_STREAM()<< " MSID : " << ms->getMsId() << ",  "<< "MS Firmware Version : " << ver_hex << LOG_END;
+                            ms->storeMsVersion(ver_hex);
+                            break;
+                        }
+                    if (msver_cb_) {
+                        msver_cb_(msid, ver_hex);
+                    }
+                    }
+                }
+            );
+        }else{            
             aero_command = new aero3::Aero3Command();
             aero_driver->setCommand(aero_command);
+            //バージョン取得　暫定処理
+            aero_driver->setMsVersionCallback(
+                [this](int msid, const std::string& ver_hex){
+                    int msdriver_id = 0;
+                    MSDriver* target = nullptr;
+                    for (auto* ms : ms_drivers) {
+                        if (!ms) continue;
+                        msdriver_id = ms->getMsId();
+                        target = ms;
+                        break;
+                    }
+
+                    bool should_process = false;
+                    {
+                        std::lock_guard<std::mutex> lk(msver_mtx_);
+                        auto it = msver_cache_.find(msdriver_id);
+
+                        if (it == msver_cache_.end()) {        
+                            // 初回のみ保存
+                            msver_cache_[msdriver_id] = ver_hex;
+                            should_process = true;
+                            target->storeMsVersion(ver_hex);
+                        } else if (it->second != ver_hex) {
+                            // 同じMSIDで version違い を検知
+                            LOG_WARN_STREAM() << "MS firmware version changed. MSID=" << msdriver_id  << " old=" << it->second  << " new=" << ver_hex << LOG_END;
+                            it->second = ver_hex;
+                            should_process = false;
+                        } else {
+                          should_process = false;
+                        }
+                    }
+
+                    if (!should_process) {
+                        return;
+                    }
+
+                    LOG_INFO_STREAM() << "MSID : " << msdriver_id  << ", MS Firmware Version : " << ver_hex << LOG_END;
+
+                    if (msver_cb_) {
+                        msver_cb_(msdriver_id, ver_hex);
+                    }
+                }
+            );
         }
     }
 
@@ -151,7 +210,14 @@ public:
             ofst += ms_driver->getNumJoints();
         }
     }
-
+   
+    void sendMsVersion() {        
+        for (auto &ms_driver : ms_drivers) {
+            if (!ms_driver) { continue; }          // 予防
+            ms_driver->sendMsVersion(aero_driver);  // aero_driver のnullも確認推奨
+        }
+    }
+   
     int getMsStatus(MSStatus *ms_status, int ofst) {
         for (size_t msidx = 0; msidx < ms_drivers.size(); ++msidx) {
             ms_drivers[msidx]->getMsStatus(ms_status[msidx + ofst].err_u16, aero_driver);
@@ -202,10 +268,28 @@ public:
     void sendOtherCommands(int msidx, BuffList &cmds) {
         ms_drivers[msidx]->sendOtherCommands(cmds, aero_driver);
     }
+
+    std::optional<std::string> getMsVersion(int msid) const {
+        for (auto* ms : ms_drivers) {
+            if (ms && ms->getMsId()) {
+                return ms->getMsVersion(); 
+            }
+        }
+        return std::nullopt;
+    }
+    
+    void setMsVersionCallback(std::function<void(int, const std::string&)> cb) {
+        msver_cb_ = std::move(cb);
+    }
+    
 private:
     std::string usb_port;
     int baudrate;
     AeroCommand* aero_command = nullptr;
     AeroDriver *aero_driver = nullptr;
     std::vector<MSDriver*> ms_drivers;//一つのmmsに複数のmsがつながっている可能性があるので。
+
+    std::function<void(int, const std::string&)> msver_cb_;
+    std::unordered_map<int, std::string> msver_cache_;
+    std::mutex msver_mtx_;
 };

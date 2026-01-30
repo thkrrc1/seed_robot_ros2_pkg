@@ -38,8 +38,14 @@ struct RecvBuff{
         for (int idx = 0; idx < datalen(); idx++){
             cs += data[idx];
         }
+        
+        //firmwareのバグの暫定対策
+        if(cmd == 0x51){
+            return true;
+        }else{
+            return (data[datalen()] == static_cast<uint8_t>(~cs));
+        }
 
-        return (data[datalen()] == static_cast<uint8_t>(~cs));
     }
 
     int datalen() const{

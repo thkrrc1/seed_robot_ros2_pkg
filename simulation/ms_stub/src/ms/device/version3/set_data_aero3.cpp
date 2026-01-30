@@ -196,7 +196,7 @@ void createFirmwareVersion(aero3::RecvBuff *recvd, aero3::SendBuff *sendd) {
     sendd->header.data[1] = 0xFD;
     sendd->len = 7;
     sendd->cmd = recvd->cmd;
-    sendd->mcid = 0x00;
+    sendd->mcid = recvd->mcid;
     sendd->data[0] = recvd->mcid * 0x01 + 0x01;
     sendd->data[1] = recvd->mcid * 0x01 + 0x02;
     sendd->data[2] = recvd->mcid * 0x01 + 0x03;

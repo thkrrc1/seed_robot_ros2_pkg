@@ -16,6 +16,13 @@ public:
     void sendPGET(SerialCommunication &serial_com, int msid) override;
     void sendMOVE(SerialCommunication &serial_com, int msid, const double &tgt_time_sec, int16_t *data) override;
     void sendTURN(SerialCommunication &serial_com, int msid, int16_t *data) override;
+    void sendVGET(SerialCommunication &serial_com, int msid) override;
+
+    
+
+    void setMsVersionCallback(std::function<void(int, const std::string&)> cb) {
+        on_ms_version_ = std::move(cb);
+    }
 
     int16_t getpos(int msid, int joint) override;
     uint16_t getstatus(int msid) override;
@@ -28,5 +35,6 @@ private:
     MSState cur_state[ms_num_capacity]; //msごとに用意
 
     SendBuff buff;
+    std::function<void(int msid, const std::string& version_hex)> on_ms_version_;
 };
 }

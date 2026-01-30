@@ -22,6 +22,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_msgs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(rt_logger REQUIRED)
+find_package(aero_controller_msgs REQUIRED)
 
 generate_parameter_library(mechanum_controller_params
   src/mechanum_controller_params.yaml
@@ -53,6 +54,7 @@ ament_target_dependencies(
   tf2
   tf2_msgs
   tf2_geometry_msgs
+  aero_controller_msgs
 )
 
 pluginlib_export_plugin_description_file(controller_interface mechanum_controller.xml)

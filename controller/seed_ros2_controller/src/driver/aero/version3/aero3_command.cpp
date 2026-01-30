@@ -1,5 +1,6 @@
 #include "aero3_command.hpp"
-
+#include <sstream>
+#include <iomanip>
 #include "debug_tools.hpp"
 #include "rt_logger/logger.hpp"
 
@@ -31,6 +32,7 @@ PARSE_RESULT Aero3Command::parseData(uint8_t *recvd) {
         RecvBuff *aero_cmd = reinterpret_cast<RecvBuff*>(recvd);
         if (!aero_cmd->isvalid()) {
             LOG_ERROR_STREAM() << "invalid checksum" << LOG_END;
+            LOG_ERROR_STREAM() << "cs error cmd: " << aero_cmd->cmd << LOG_END;
             result = PARSE_RESULT::CMD_INVALID;
             return result;
         }
@@ -64,6 +66,23 @@ PARSE_RESULT Aero3Command::parseData(uint8_t *recvd) {
                 ++jidx;
             }
             result = PARSE_RESULT::CMD_PARSED;
+        } else if (aero_cmd->cmd == 0x51 && aero_cmd->mcid == 0x00) {
+            //Firmware取得返信
+            std::string version = "";
+            version.reserve(static_cast<size_t>(aero_cmd->datalen()) * 2);
+            for (int idx = 0; idx < aero_cmd->datalen(); idx ++) {
+                uint8_t b_ver;
+                aero_cmd->get(idx, b_ver);
+                // ostringstream を避けて高速に 2桁hex化
+                static constexpr char HEX[] = "0123456789abcdef";
+                version.push_back(HEX[(b_ver >> 4) & 0x0F]);
+                version.push_back(HEX[b_ver & 0x0F]);
+            }
+            
+            if (on_ms_version_) {
+                on_ms_version_(msid, version);   // msid は今 0 固定になっている
+            }
+            result = PARSE_RESULT::CMD_OTHER;
         }
     }
 
@@ -110,6 +129,19 @@ void Aero3Command::sendTURN(SerialCommunication &serial_com, int msid, int16_t *
     int next_idx = 0;
     next_idx = buff.setData(data, 30, next_idx);
     next_idx = buff.setData(uint16_t(0x7FFF), next_idx);
+    buff.addChecksum();
+
+    serial_com.write(buff.serialize(), buff.getTotalLen());
+}
+
+void Aero3Command::sendVGET(SerialCommunication &serial_com, int msid) {
+    buff.init();
+    buff.header.data[0] = 0xFD;
+    buff.header.data[1] = 0xDF;
+    buff.cmd = 0x51;
+    buff.mcid = 0x00; //MSのみ
+    buff.len = 0x40;
+
     buff.addChecksum();
 
     serial_com.write(buff.serialize(), buff.getTotalLen());

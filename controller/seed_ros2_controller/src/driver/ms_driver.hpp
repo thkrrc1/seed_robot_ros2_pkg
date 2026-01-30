@@ -71,6 +71,21 @@ public:
         status = aero_driver->getstatus(msid);
     }
 
+    void sendMsVersion(AeroDriver *aero_driver) {
+        aero_driver->sendVGET(msid);
+    }
+
+    void storeMsVersion(std::string ver_hex) {
+        std::scoped_lock lk(ver_mtx_);
+        if (ms_version_) return;              // 「最初に1回だけ格納」なら上書き禁止
+        ms_version_ = std::move(ver_hex);
+    }
+
+    std::optional<std::string> getMsVersion() const {
+        std::scoped_lock lk(ver_mtx_);
+        return ms_version_;
+    }
+
 //速度は取得できない
 //    void getActualVelocities(std::vector<int16_t> &ros_velocities,AeroCommand *aero_driver){
 //        for(int idx = 0;idx < 31;++idx){
@@ -192,5 +207,8 @@ private:
 
     std::vector<int16_t> current_positions;
     std::vector<int16_t> current_velocities;
+
+    mutable std::mutex ver_mtx_;
+    std::optional<std::string> ms_version_;
 
 };

@@ -35,6 +35,7 @@ private:
     aero_controller_msgs::msg::StatusParsed status_parsed_msg;
     bool status_parse = true;
     std::atomic<bool> shutdown = false;
+    static constexpr uint64_t MIN_REQUIRED_FW = 0x0001072500ULL; //MS Firmwareバージョン　0x61対応している最小値
 };
 
 }

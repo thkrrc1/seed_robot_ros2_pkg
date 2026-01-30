@@ -62,6 +62,14 @@ public:
 
         return global_pose;
     }
+    
+    void reset_filter()
+    {
+      vx_acc  = rcpputils::RollingMeanAccumulator<double>(vel_rolling_window_size);
+      vy_acc  = rcpputils::RollingMeanAccumulator<double>(vel_rolling_window_size);
+      vth_acc = rcpputils::RollingMeanAccumulator<double>(vel_rolling_window_size);
+      local_vel_mean = Velocity{};  // 念のため
+    }
 
 
 private:

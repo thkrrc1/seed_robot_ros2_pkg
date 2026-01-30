@@ -25,6 +25,8 @@ public:
     virtual void sendPGET(SerialCommunication &serial_com, int msid) = 0;
     virtual void sendMOVE(SerialCommunication &serial_com, int msid, const double &tgt_time_sec, int16_t *data) = 0;
     virtual void sendTURN(SerialCommunication &serial_com, int msid, int16_t *data) = 0;
+    virtual void sendVGET(SerialCommunication &serial_com, int msid) = 0;
+    virtual void setMsVersionCallback(std::function<void(int, const std::string&)> cb)  = 0;
 
     virtual int16_t getpos(int msid, int joint) = 0;
     virtual uint16_t getstatus(int msid) = 0;
@@ -85,6 +87,12 @@ public:
         }
     }
 
+    void sendVGET(int msid) {
+        if (command_base) {
+            command_base->sendVGET(serial_com, msid);
+        }
+    }
+
     int16_t getpos(int msid, int joint) {
         if (command_base) {
             return command_base->getpos(msid, joint);
@@ -97,6 +105,11 @@ public:
             return command_base->getstatus(msid);
         }
         return 0;
+    }
+    void setMsVersionCallback(std::function<void(int, const std::string&)> cb) {
+        if (command_base) {
+            command_base->setMsVersionCallback(std::move(cb));
+        }
     }
 
     void sendOtherCommands(int msid, BuffList &cmds);

@@ -329,6 +329,32 @@ public:
         }
     }
 
+    void sendMsVersion(){
+        for(size_t idx = 0;idx < usbs.size();++idx){
+            usbs[idx]->sendMsVersion();
+        }
+    }
+
+    std::optional<std::string> getMsVersion(int msid) const {
+        for (auto& usb : usbs) {
+            if (!usb) continue;
+            auto v = usb->getMsVersion(msid);
+            if (v) return v;
+        }
+        return std::nullopt;
+    }
+
+    void setMsVersionCallback(std::function<void(int, const std::string&)> cb) {
+        msver_cb_ = std::move(cb);
+
+        // 下位USBへ配る（RobotDriverSingleUSBに同様のsetterが必要）
+        for (auto& usb : usbs) {
+            if (!usb) continue;
+            usb->setMsVersionCallback(msver_cb_);
+        }
+    }
+
+
 private:
     std::shared_ptr<seed_converter::StrokeConverter> stroke_converter_ = nullptr;
 
@@ -343,4 +369,7 @@ private:
     std::vector<double> joint_position_fb_prev2;
 
     std::vector<RobotDriverSingleUSB*> usbs;
+    std::function<void(int, const std::string&)> msver_cb_;
+    std::mutex usb_mtx_;
+    
 };

@@ -19,6 +19,7 @@
   <depend>realtime_tools</depend>
   <depend>sensor_msgs</depend>
   <depend>rcpputils</depend>
+  <depend>aero_controller_msgs</depend>
   
   <export>
     <build_type>ament_cmake</build_type>

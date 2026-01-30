@@ -92,7 +92,7 @@ bool AeroController::getVersion(std::shared_ptr<aero_controller_msgs::srv::GetVe
         aero_controller_msgs::msg::VersionMs verInfo;
         verInfo.msid = ms;
         verInfo.version = verget_ctrl.getVersion(this, ms);
-
+        std::cout << "MS Ver : " <<  verInfo.version << std::endl;
         //MCのバージョン取得
         for (int mc = 1; mc < mcmax; ++mc) {
             verInfo.version_mc.push_back(verget_ctrl.getVersion(this, ms, mc));

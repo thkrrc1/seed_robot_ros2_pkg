@@ -56,17 +56,19 @@ hardware_interface::CallbackReturn RobotHardware::on_init(const hardware_interfa
 
     int numPorts = driver_->getNumPorts();
     int numMs = driver_->getNumMs();
+    driver_->sendMsVersion();
+
     other_cmds_recv_.resize(numMs);
     other_cmds_send_.resize(numMs);
     status_recv_.usb_num = numPorts;
     status_recv_.ms_num = numMs;
+    
     if (numPorts > status_recv_.get_usb_capacity()) {
         throw std::runtime_error("exceed usb capacity.");
     }
     if (numMs > status_recv_.get_ms_capacity()) {
         throw std::runtime_error("exceed ms capacity.");
     }
-
 
     for (int idx = 0; idx < numMs; ++idx) {
         int msid = driver_->getMsId(idx);
@@ -75,6 +77,16 @@ hardware_interface::CallbackReturn RobotHardware::on_init(const hardware_interfa
         command_interface::OtherCommandHandle oc_handle = command_interface::OtherCommandHandle(msid, joint_names, protocol, &other_cmds_recv_[idx], &other_cmds_send_[idx]);
         other_interf.register_handle(oc_handle);
     }
+
+    driver_->setMsVersionCallback(
+        [this](int msid, const std::string& ver_hex) {
+            try {
+                auto h = other_interf.get_handle(std::to_string(msid)); // 値コピー
+                h.set_ms_version(ver_hex);
+            } catch (...) {}
+        }
+    );
+    driver_->sendMsVersion();
 
     command_interface::StatusHandle status_handle = command_interface::StatusHandle("status", &status_recv_);
     status_interf.register_handle(status_handle);

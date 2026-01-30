@@ -59,6 +59,24 @@ PARSE_RESULT AeroCommand::parseData(uint8_t *recvd) {
                 ++jidx;
             }
             result = PARSE_RESULT::CMD_PARSED;
+        } else if (aero_cmd->cmd == 0x51) {
+            //Firmware取得返信
+            std::string version = "";
+            version.reserve(static_cast<size_t>(aero_cmd->datalen()) * 2);
+            for (int idx = 0; idx < aero_cmd->datalen(); idx ++) {
+                uint8_t b_ver;
+                aero_cmd->get(idx, b_ver);
+                // ostringstream を避けて高速に 2桁hex化
+                static constexpr char HEX[] = "0123456789abcdef";
+                version.push_back(HEX[(b_ver >> 4) & 0x0F]);
+                version.push_back(HEX[b_ver & 0x0F]);
+            }
+            LOG_ERROR_STREAM() << " Firmware:  " <<  version <<LOG_END;
+            
+            if (on_ms_version_) {
+                on_ms_version_(aero_cmd->msid, version);   // msid は今 0 固定になっている
+            }
+            result = PARSE_RESULT::CMD_OTHER;
         }
     }
 
@@ -111,6 +129,18 @@ void AeroCommand::sendTURN(SerialCommunication &serial_com, int msid, int16_t *d
 
     serial_com.write(buff.serialize(), buff.getTotalLen());
 }
+
+void AeroCommand::sendVGET(SerialCommunication &serial_com, int msid) {
+    buff.init();
+    buff.header.data[0] = 0xFD;
+    buff.header.data[1] = 0xDF;
+    buff.cmd = 0x51;
+    
+    buff.addChecksum();
+
+    serial_com.write(buff.serialize(), buff.getTotalLen());
+}
+
 
 int16_t AeroCommand::getpos(int msid, int joint) {
     return cur_state[msid].mcval[joint].pos;

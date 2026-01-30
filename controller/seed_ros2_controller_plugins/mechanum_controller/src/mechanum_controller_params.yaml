@@ -95,3 +95,26 @@ mechanum_controller:
       base_frame_id: 
          type: string
          default_value: base_link
+
+   encoder_reset:
+      enable:
+         type: bool
+         default_value: false
+      
+      msid:
+         type: int
+         default_value: 2
+
+      send_no:
+         front_left:
+            type: int
+            default_value: 4
+         front_right:
+            type: int
+            default_value: 2
+         rear_left:
+            type: int
+            default_value: 5
+         rear_right:
+            type: int
+            default_value: 3

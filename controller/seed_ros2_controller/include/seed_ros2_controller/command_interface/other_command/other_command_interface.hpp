@@ -7,10 +7,17 @@ namespace seed_ros2_controller{
 namespace command_interface{
 class OtherCommandHandle{
 public:
-    OtherCommandHandle() = default;
+  struct SharedState {
+    mutable std::mutex ms_ver_mtx;
+    std::optional<std::string> ms_version;
+  };
+
+  OtherCommandHandle()
+  : st_(std::make_shared<SharedState>()) {}
+
 
     OtherCommandHandle(const int msid, const std::vector<std::string> &joint_names, const std::string &protocol, BuffList *buff_list_recv, BuffList *buff_list_send) :
-            msid_(msid), joint_names_(joint_names), protocol_(protocol), buff_list_recv_(buff_list_recv), buff_list_send_(buff_list_send) {
+            msid_(msid), joint_names_(joint_names), protocol_(protocol), buff_list_recv_(buff_list_recv), buff_list_send_(buff_list_send) ,st_(std::make_shared<SharedState>()) {
     }
 
 
@@ -40,6 +47,18 @@ public:
         return;
     }
 
+    void set_ms_version(std::string ver_hex) {
+        if (!st_) return;
+        std::scoped_lock lk(st_->ms_ver_mtx);
+        st_->ms_version = std::move(ver_hex);
+    }
+
+    std::optional<std::string> get_ms_version() const {
+        if (!st_) return std::nullopt;
+        std::scoped_lock lk(st_->ms_ver_mtx);
+        return st_->ms_version;
+    }
+
 
     std::string get_name() const {
         return std::to_string(msid_);
@@ -52,6 +71,7 @@ public:
     std::string get_protocol() const{
         return protocol_;
     }
+    
 private:
     int msid_ = 0;
     std::vector<std::string> joint_names_;
@@ -59,6 +79,7 @@ private:
 
     BuffList *buff_list_recv_ = nullptr;
     BuffList *buff_list_send_ = nullptr;
+    std::shared_ptr<SharedState> st_; 
 };
 
 class OtherCommandInterface : public CommandInterface<OtherCommandHandle>{
