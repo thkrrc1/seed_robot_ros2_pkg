@@ -15,7 +15,7 @@ class PublisherNode(Node):
         self.declare_parameter('pose', [0.0, 0.0, 0.0])
         self.declare_parameter('map_frame', "map")
         
-        self.publisher = self.create_publisher(geometry_msgs.msg.PoseWithCovarianceStamped, self.get_namespace()+'/initialpose', rclpy.qos.qos_profile_system_default)
+        self.publisher = self.create_publisher(geometry_msgs.msg.PoseWithCovarianceStamped, '/initialpose', rclpy.qos.qos_profile_system_default)
         
         self._timer = self.create_timer(5.0, self.timer_callback)
         

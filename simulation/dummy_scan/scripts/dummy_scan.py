@@ -190,7 +190,6 @@ class ScanNode(rclpy.node.Node):
     def __init__(self):
         super().__init__("scan_node")
         
-        prefix = self.get_namespace().lstrip('/')
         self.declare_parameter('odom_frame', "odom")
         self.declare_parameter('sensor_frame', "wheels_base_laser_link")
         self.declare_parameter('robot_base_frame', "base_link")

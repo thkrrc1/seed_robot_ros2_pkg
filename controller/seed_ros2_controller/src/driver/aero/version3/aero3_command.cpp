@@ -32,7 +32,7 @@ PARSE_RESULT Aero3Command::parseData(uint8_t *recvd) {
         RecvBuff *aero_cmd = reinterpret_cast<RecvBuff*>(recvd);
         if (!aero_cmd->isvalid()) {
             LOG_ERROR_STREAM() << "invalid checksum" << LOG_END;
-            LOG_ERROR_STREAM() << "cs error cmd: " << aero_cmd->cmd << LOG_END;
+            LOG_ERROR_STREAM() << "cs error cmd: 0x" << std::hex << static_cast<int>(aero_cmd->cmd) << std::dec << LOG_END;
             result = PARSE_RESULT::CMD_INVALID;
             return result;
         }
