@@ -1,0 +1,3 @@
+#aero_controller
+SUBSYSTEM=="tty",ATTRS{idVendor}=="0483",ATTRS{idProduct}=="a1e8",ATTRS{serial}=="000000000010",MODE="666",SYMLINK+="aero_upper", RUN+="/bin/setserial /dev/aero_upper low_latency"
+SUBSYSTEM=="tty",ATTRS{idVendor}=="0483",ATTRS{idProduct}=="a1e8",ATTRS{serial}=="000000000020",MODE="666",SYMLINK+="aero_lower", RUN+="/bin/setserial /dev/aero_lower low_latency"

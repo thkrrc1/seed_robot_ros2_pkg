@@ -19,17 +19,17 @@
 1. インストール  
 [ROS2 jazzy : Installation Ubuntu (Debian packages)](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
 
-1. 環境設定  
+2. 環境設定  
 [Configuring environment](https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Configuring-ROS2-Environment.html)  
 ※「3.1 The ROS_DOMAIN_ID variable」の設定は不要, 
 
-2. ビルドの確認  
+3. ビルドの確認  
 [Using colcon to build packages](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html)  
-3. colcon cleanをインストール
+4. colcon cleanをインストール
     ```terminal
     $ sudo apt install python3-colcon-clean 
     ```
-4. rosdep初期化
+5. rosdep初期化
     ```terminal
     $ sudo rosdep init
     $ rosdep update
@@ -86,12 +86,25 @@
     ```
     RuntimeError: コマンド失敗
     ```
-7. ビルド
+6. ビルド
     ```
     $ cd ~/ros2_ws
     $ colcon build --symlink-install
     $ cd ~/ros2_ws
     $ source install/setup.bash
+    ```
+## 4.Udevの設定（ロボットを持っている場合）
+ロボットのUSBをPCにまだ登録していない場合は、登録する必要があります。
+(``/etc/udev/rules.d/90-aero.rules``がすでにある場合、こちらの作業は必要ありません。)
+1. スクリプトの実行
+    ```terminal
+    $ cd ~/ros2_ws/src/seed_robot_ros2_pkg/scripts
+    $ ./make_udev_install.sh
+    ```
+    実行すると下記メッセージが表示されます。
+    ```
+    udevファイルをコピーします
+    完了しました
     ```
 
 ## その他 : 細かいインストール(必要に応じて)
