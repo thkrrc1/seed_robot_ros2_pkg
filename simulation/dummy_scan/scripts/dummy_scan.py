@@ -1,17 +1,59 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
+
+import tf_transformations
+from tf2_ros import TransformException
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
+import tf2_ros
+
 import numpy as np
 import math
-
-import rclpy
-import tf2_ros
-import tf_transformations
 import cv2
+import threading
+from rclpy.executors import MultiThreadedExecutor
+from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import OccupancyGrid, MapMetaData
+from geometry_msgs.msg import PoseWithCovarianceStamped, Pose, TransformStamped
+import time
 
-import nav_msgs.msg
-import geometry_msgs.msg
-import sensor_msgs.msg
+def getYaw(orientation):
+    quaternion = (orientation.x, orientation.y, orientation.z, orientation.w)
+    (roll, pitch, yaw) = tf_transformations.euler_from_quaternion(quaternion)
+    return yaw
+
+
+def pose_to_mat(pose):
+    quat = [pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w]
+    pos = np.matrix([pose.position.x, pose.position.y, pose.position.z]).T
+    mat = np.matrix(tf_transformations.quaternion_matrix(quat))
+    mat[0:3, 3] = pos
+    return mat
+
+
+def transform_to_mat(transform):
+    quat = [transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w]
+    pos = np.matrix([transform.translation.x, transform.translation.y, transform.translation.z]).T
+    mat = np.matrix(tf_transformations.quaternion_matrix(quat))
+    mat[0:3, 3] = pos
+    return mat
+
+
+def mat_to_pose(mat):
+    pose = Pose()
+    pose.position.x = mat[0, 3]
+    pose.position.y = mat[1, 3]
+    pose.position.z = mat[2, 3]
+    quat = tf_transformations.quaternion_from_matrix(mat)
+    pose.orientation.x = quat[0]
+    pose.orientation.y = quat[1]
+    pose.orientation.z = quat[2]
+    pose.orientation.w = quat[3]
+    return pose
 
 
 # 直線のピクセル値を取得
@@ -57,217 +99,227 @@ def LineIterator(p1, p2):
     return line.astype(int)
 
 
-class Pose:
+class DummyScan(Node):
 
-    def __init__(self, x: float=0.0, y: float=0.0, th: float=0.0):
-        self.x = x
-        self.y = y
-        self.th = th
+    def __init__(self, map_topic, scan_topic, sensor_frame, scan_base_frame, scan_range_min, scan_range_max, angle_min, angle_max, resolution):
+        super().__init__("dummy_scan")
+        period = 0.05
         
-    @classmethod
-    def from_ros_pose(cls, pose: geometry_msgs.msg.Pose):
-        quaternion = (pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w)
-        (_, _, th) = tf_transformations.euler_from_quaternion(quaternion)
-        return cls(pose.position.x, pose.position.y, th)
-
-    @classmethod
-    def from_transform(cls, transform: geometry_msgs.msg.Transform):
-        quaternion = (transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w)
-        (_, _, th) = tf_transformations.euler_from_quaternion(quaternion)
-        return cls(transform.translation.x, transform.translation.y, th)
-    
-    def to_ros_pose(self):
-        pose = geometry_msgs.msg.Pose()
-        pose.position.x = float(self.x)
-        pose.position.y = float(self.y)
-        pose.position.z = float(0.0)
-        quat = tf_transformations.quaternion_from_euler(0, 0, self.th)
-        pose.orientation.x = float(quat[0])
-        pose.orientation.y = float(quat[1])
-        pose.orientation.z = float(quat[2])
-        pose.orientation.w = float(quat[3])
-        return pose
-
-    def __add__(self, rhs):
-        return Pose(self.x + rhs.x, self.y + rhs.y, self.th + rhs.th)
-    
-    def __mul__(self, rhs):
-        c = np.cos(self.th)
-        s = np.sin(self.th)
-        return Pose(self.x + c * rhs.x - s * rhs.y,
-                    self.y + s * rhs.x + c * rhs.y,
-                    self.th + rhs.th)
-    
-    def inv(self):
-        return Pose(-self.x, -self.y, -self.th)
-    
-    def __str__(self):
-        return f"[{self.x}, {self.y}, {self.th}]"
-
-
-class Scan:
-
-    def __init__(self, sensor_frame, ang_min, ang_max, ang_step, range_min, range_max):
-        self._scan = sensor_msgs.msg.LaserScan()
-        self._scan.header.frame_id = sensor_frame
-        self._scan.angle_min = ang_min
-        self._scan.angle_max = ang_max
-        self._scan.angle_increment = ang_step
-        self._scan.time_increment = 0.0
-        self._scan.scan_time = 0.0
-        self._scan.range_min = range_min
-        self._scan.range_max = range_max
-        self._scan.ranges = [0.0 for idx in np.arange(self._scan.angle_min, self._scan.angle_max, self._scan.angle_increment)]
-        self.angles_template = np.arange(ang_min, ang_max, ang_step)
-    
-    @property
-    def range_max(self):
-        return self._scan.range_max
-    
-    @property
-    def range_min(self):
-        return self._scan.range_min
-    
-    @property
-    def message(self):
-        return self._scan
-    
-    def set_range(self, idx, value):
-        self._scan.ranges[idx] = value + np.random.multivariate_normal([0], np.diag([0.005 ** 2]), 1)
+        latching_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+        self.scan_pub = self.create_publisher(LaserScan, scan_topic, 1)
         
-    def set_range_invalid(self, idx):
-        self._scan.ranges[idx] = (self._scan.range_max + 1)
+        self.timer = self.create_timer(period, self.timer_callback)
+        self.map_base_frame = ""
+        self.resolution = 0
+        self.sensor_frame = sensor_frame
+        self.scan_base_frame = scan_base_frame
+        self.origin_x_pix = 0
+        self.origin_y_pix = 0
 
-
-class ScanMap():
-
-    def __init__(self):
-        self._initialized = False
-    
-    def set_map(self, map):
-        info = map.info
-        width = info.width
-        height = info.height
-        self._map_to_img = Pose.from_ros_pose(info.origin)
-        self._resolution = info.resolution
-        self._map = np.array(map.data).reshape(height, width).astype(np.int8)
-        cv2.imwrite("map.jpeg",self._map)
+        self.map_topic = map_topic
+        self.scan = LaserScan()
+        self.scan.header.frame_id = sensor_frame
+        self.scan.angle_min = angle_min
+        self.scan.angle_max = angle_max
+        self.scan.angle_increment = resolution
+        self.scan.time_increment = 0.0
+        self.scan.scan_time = 0.0
+        self.scan.range_min = float(scan_range_min)
+        self.scan.range_max = float(scan_range_max)
+        self.scan.ranges = [0.0 for idx in np.arange(angle_min, angle_max, resolution)]
         
-        self._initialized = True
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
+        
+        self.origin_ofst = np.eye(4)
+        self.org_map = OccupancyGrid()
+        
+        self.count = 0
     
-    def update_scan(self, scan: Scan, map_to_sensor):
-        if not self._initialized:
+    def init_pose_callback(self, msg):
+        self.timer.cancel()
+        self.get_logger().info('init_pose received : %d' % threading.get_ident())
+        # odomからセンサまでの変換
+        try:
+            trans_odom_to_sensor = self.tf_buffer.lookup_transform(self.scan_base_frame, self.sensor_frame, rclpy.time.Time())
+        except(Exception):
+            self.get_logger().error("tf transform could not be solved. from: %s to: %s" % (self.scan_base_frame, self.sensor_frame))
+            self.timer.reset()
             return
-
-        img_to_sensor = self._map_to_img.inv() * map_to_sensor
-        pix_x = int(img_to_sensor.x / self._resolution)
-        pix_y = int(img_to_sensor.y / self._resolution)
+        try:
+            trans_baselink_to_sensor = self.tf_buffer.lookup_transform("base_link", self.sensor_frame, rclpy.time.Time())
+        except(Exception):
+            self.get_logger().error("tf transform could not be solved. from: %s to: %s" % (self.scan_base_frame, self.sensor_frame))
+            self.timer.reset()
+            return
         
-        angles = scan.angles_template + img_to_sensor.th
-        xmaxs = (pix_x + (scan.range_max * np.cos(angles)) / self._resolution).astype(int)
-        ymaxs = (pix_y + (scan.range_max * np.sin(angles)) / self._resolution).astype(int)
-        xmins = (pix_x + (scan.range_min * np.cos(angles)) / self._resolution).astype(int)
-        ymins = (pix_y + (scan.range_min * np.sin(angles)) / self._resolution).astype(int)
-
-        map_rows, map_cols = self._map.shape
+        mat_odom_to_sensor = transform_to_mat(trans_odom_to_sensor.transform)
+        mat_baselink_to_sensor = transform_to_mat(trans_baselink_to_sensor.transform)
+        mat_map_to_baselink = pose_to_mat(msg.pose.pose)
+        self.origin_ofst = (mat_map_to_baselink * mat_baselink_to_sensor) * np.linalg.inv(mat_odom_to_sensor)
         
-        for i in range(angles.size):
-            points = LineIterator((xmins[i], ymins[i]), (xmaxs[i], ymaxs[i]))
-            points[:, 1] = np.clip(points[:, 1], 0, map_rows - 1)
-            points[:, 0] = np.clip(points[:, 0], 0, map_cols - 1)
-            pixval = self._map[points[:, 1], points[:, 0]]
-            idxs = np.where(pixval == 100)[0]
-            if(idxs.size == 0):
-                scan.set_range_invalid(i)
-            else:
-                p = points[idxs[0]]
-                dist = np.hypot((p[0] - pix_x), (p[1] - pix_y)) * self._resolution
-                scan.set_range(i, dist)
-
-
-class ScanNode(rclpy.node.Node):
-
-    def __init__(self):
-        super().__init__("scan_node")
-        
-        self.declare_parameter('odom_frame', "odom")
-        self.declare_parameter('sensor_frame', "wheels_base_laser_link")
-        self.declare_parameter('robot_base_frame', "base_link")
-        self.declare_parameter('map_frame', "map")
-        self.declare_parameter('update_period', 0.05)
-
-        self.declare_parameter('scan/range_min', 0.01)
-        self.declare_parameter('scan/range_max', 10.0)
-        self.declare_parameter('scan/angle_min', -math.pi / 2)
-        self.declare_parameter('scan/angle_max', math.pi / 2)
-        self.declare_parameter('scan/angle_step', 0.05)
-
-        init_pose_topic = "initialpose"
-        map_topic = "/map"
-        scan_topic = "/scan"
-        
-        self._robot_base_frame = self.get_parameter('robot_base_frame').get_parameter_value().string_value
-        self._map_frame = self.get_parameter('map_frame').get_parameter_value().string_value
-        self._odom_frame = self.get_parameter('odom_frame').get_parameter_value().string_value
-        self._sensor_frame = self.get_parameter('sensor_frame').get_parameter_value().string_value
-        period = self.get_parameter('update_period').value
-
-        range_min = self.get_parameter('scan/range_min').value
-        range_max = self.get_parameter('scan/range_max').value
-        ang_min = self.get_parameter('scan/angle_min').value
-        ang_max = self.get_parameter('scan/angle_max').value
-        ang_step = self.get_parameter('scan/angle_step').value
-        self._scan_pub = self.create_publisher(sensor_msgs.msg.LaserScan, scan_topic, rclpy.qos.qos_profile_sensor_data)
-        
-        self._scan = Scan(self._sensor_frame, ang_min, ang_max, ang_step, range_min, range_max)
-        self._tf_buffer = tf2_ros.buffer.Buffer()
-        self._tf_listener = tf2_ros.transform_listener.TransformListener(self._tf_buffer, self)
-        self._timer = self.create_timer(period, self.timer_callback)
-        self._map_to_odom = Pose(0.0, 0.0, 0.0)
-        
-        latching_qos = rclpy.qos.QoSProfile(depth=1, durability=rclpy.qos.QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        self._map_sub = self.create_subscription(nav_msgs.msg.OccupancyGrid, map_topic, self.map_callback, latching_qos)
-        self.init_pose_sub = self.create_subscription(geometry_msgs.msg.PoseWithCovarianceStamped, init_pose_topic, self.init_pose_callback, rclpy.qos.qos_profile_system_default)
-
-        self._scan_map = ScanMap()
+        self.timer.reset()
         
     def map_callback(self, msg):
-        self._scan_map.set_map(msg)
+        self.get_logger().info('map received : %d' % threading.get_ident())
+        self.org_map = msg
     
-    def init_pose_callback(self, msg : geometry_msgs.msg.PoseWithCovarianceStamped):
-        try:
-            trans_base_to_odom = self._tf_buffer.lookup_transform(self._robot_base_frame, self._odom_frame, rclpy.time.Time())
-        except(Exception):
+        self.timer.cancel()
+        self.map_base_frame = self.org_map.header.frame_id
+        info = self.org_map.info
+        self.resolution = info.resolution
+
+        width = info.width  # cells
+        height = info.height  # cells
+        
+        if(width == 0 or height == 0):
+            self.map = np.array([])
+            self.timer.reset()
             return
         
-        map_to_base = Pose.from_ros_pose(msg.pose.pose)
-        base_to_odom = Pose.from_transform(trans_base_to_odom.transform)
-        self._map_to_odom = map_to_base * base_to_odom
+        origin_x = info.origin.position.x  # ロボット原点から見たマップ原点位置[m](反転画像座標的には、画像左上位置)
+        origin_y = info.origin.position.y
+        origin_z = info.origin.position.z
+        origin_yaw = getYaw(info.origin.orientation)
+        map_tmp = np.array(self.org_map.data).reshape(height, width).astype(np.uint8)
+        map_tmp = np.where(map_tmp == 255, 0, map_tmp)
+        
+        p1 = np.array([-width/2,-height/2])
+        p2 = np.array([-width/2, height/2])
+        
+        mat = np.array([[np.cos(origin_yaw), - np.sin(origin_yaw)],[np.sin(origin_yaw), np.cos(origin_yaw)]])
+        new_p1 = np.fabs(mat.dot(p1))
+        new_p2 = np.fabs(mat.dot(p2))
+        
+        max_x = max(new_p1[0],new_p2[0])
+        max_y = max(new_p1[1],new_p2[1])
+        new_width = int(max_x*2)
+        new_height = int(max_y*2)        
 
+        # odomから見た、画像原点位置
+        self.origin_x_pix = int(origin_x / self.resolution)
+        self.origin_y_pix = int(origin_y / self.resolution)
+        self.origin_yaw_rad = origin_yaw
+        
+        self.origin_x_pix +=  int((-new_width/2) - ((-width/2) * np.cos(origin_yaw) - (-height/2) * np.sin(origin_yaw)))
+        self.origin_y_pix +=  int((-new_height/2) - ((-width/2) * np.sin(origin_yaw) + (-height/2) * np.cos(origin_yaw)))
+
+        # マップの回転
+        angle = math.degrees(origin_yaw)
+        scale = 1.0
+        center = (int(width / 2), int(height / 2))
+        trans = cv2.getRotationMatrix2D(center, -angle, scale) #反時計周りが正なので、正負逆転
+        trans[0][2] += new_width/2 - width / 2
+        trans[1][2] += new_height/2 - height / 2
+        self.map = cv2.warpAffine(map_tmp, trans, (new_width, new_height))
+
+        now = rclpy.time.Time();
+        try:
+            trans_odom_to_sensor = self.tf_buffer.lookup_transform(self.scan_base_frame, self.sensor_frame, now, timeout=rclpy.duration.Duration(seconds=1))
+        except(Exception):
+            self.get_logger().error("tf transform could not be solved. from: %s to: %s" % (self.scan_base_frame, self.sensor_frame))
+            return
+        
+        try:
+            trans_baselink_to_sensor = self.tf_buffer.lookup_transform("base_link", self.sensor_frame, now, timeout=rclpy.duration.Duration(seconds=10))
+        except(Exception):
+            self.get_logger().error("tf transform could not be solved. from: %s to: %s" % ("base_link", self.sensor_frame))
+            self.timer.reset()
+            return
+                
+        try:
+            trans_map_to_baselink = self.tf_buffer.lookup_transform("map", "base_link", now, timeout=rclpy.duration.Duration(seconds=10))
+        except(Exception):
+            trans_map_to_baselink = TransformStamped()
+            trans_map_to_baselink.transform.rotation.w = 1.0
+            self.get_logger().error("tf transform could not be solved. from: %s to: %s" % ("map", "base_link"))
+            self.timer.reset()
+        
+        mat_odom_to_sensor = transform_to_mat(trans_odom_to_sensor.transform)
+        mat_baselink_to_sensor = transform_to_mat(trans_baselink_to_sensor.transform)
+        mat_map_to_baselink = transform_to_mat(trans_map_to_baselink.transform)
+        self.origin_ofst = (mat_map_to_baselink * mat_baselink_to_sensor) * np.linalg.inv(mat_odom_to_sensor)
+
+        self.timer.reset()
+        
+        
     def timer_callback(self):
-        try:
-            trans_odom_to_sensor = self._tf_buffer.lookup_transform(self._odom_frame, self._sensor_frame, rclpy.time.Time())
-        except(Exception):
+        if(self.count < 50):
+            self.scan.header.stamp = self.get_clock().now().to_msg()
+            self.scan_pub.publish(self.scan)
+            self.count = self.count+1
+            return
+        elif self.count == 50 or self.resolution == 0 or self.map.size == 0:
+            latching_qos = QoSProfile(depth=1, durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
+            self.map_sub = self.create_subscription(OccupancyGrid, self.map_topic, self.map_callback, latching_qos)
+            self.init_pose_sub = self.create_subscription(PoseWithCovarianceStamped, "/initialpose", self.init_pose_callback, rclpy.qos.qos_profile_system_default)
+            self.count = self.count+1
             return
         
-        odom_to_sensor = Pose.from_transform(trans_odom_to_sensor.transform)
-        map_to_sensor = self._map_to_odom * odom_to_sensor
-        self._scan_map.update_scan(self._scan, map_to_sensor)
+        try:
+            trans_odom_to_sensor = self.tf_buffer.lookup_transform(self.scan_base_frame, self.sensor_frame, rclpy.time.Time())
+        except(Exception):
+            self.get_logger().error("tf transform could not be solved. from: %s to: %s" % (self.scan_base_frame, self.sensor_frame))
+            self.scan.header.stamp = self.get_clock().now().to_msg()
+            self.scan_pub.publish(self.scan)
+            return
+        
+        mat_odom_to_sensor = transform_to_mat(trans_odom_to_sensor.transform)
+        pose_map_to_sensor = mat_to_pose(self.origin_ofst * mat_odom_to_sensor)
+        
+        sensor_yaw = getYaw(pose_map_to_sensor.orientation)
+        sensor_pos = pose_map_to_sensor.position
+        sensor_range = self.scan.range_max  # [m]
+        ang_min = self.scan.angle_min + sensor_yaw
+        ang_max = self.scan.angle_max + sensor_yaw
+        ang_step = self.scan.angle_increment
+        
+        cur_x_pix = int(sensor_pos.x / self.resolution)
+        cur_y_pix = int(sensor_pos.y / self.resolution)
+        
+        # odomから見た、センサ最大、最小距離のピクセル値
+        angles = np.arange(ang_min, ang_max, ang_step)
+        xmaxs = (cur_x_pix + (self.scan.range_max * np.cos(angles)) / self.resolution).astype(int)
+        ymaxs = (cur_y_pix + (self.scan.range_max * np.sin(angles)) / self.resolution).astype(int)
+        xmins = (cur_x_pix + (self.scan.range_min * np.cos(angles)) / self.resolution).astype(int)
+        ymins = (cur_y_pix + (self.scan.range_min * np.sin(angles)) / self.resolution).astype(int)
 
-        scan_msg = self._scan.message        
-        scan_msg.header.stamp = self.get_clock().now().to_msg()
-        self._scan_pub.publish(scan_msg)
+        for i in range(angles.size):
+            # 画像原点から見たlidarの走査直線上のピクセル座標を取得
+            points = LineIterator((xmins[i], ymins[i]), (xmaxs[i], ymaxs[i]))
+            points = points - (self.origin_x_pix, self.origin_y_pix)
+
+            # 座標が画像の範囲を超えないようにする
+            points = np.where(points < 0, 0, points)
+            points[:, 0] = np.where(points[:, 0] >= self.map.shape[1], self.map.shape[1] - 1, points[:, 0])
+            points[:, 1] = np.where(points[:, 1] >= self.map.shape[0], self.map.shape[0] - 1, points[:, 1])
+
+            # lidarの値を入れる
+            pixval = self.map[points[:, 1], points[:, 0]]  # 直線上のピクセル値
+            idxs = np.where(pixval == 100)[0]  # whereは、タプルで返ってくるので、最初の要素を取り出す
+            if(idxs.size == 0):
+                self.scan.ranges[i] = (sensor_range + 1)
+            else:
+                p = points[idxs[0]]
+                dist = math.hypot((p[0] + self.origin_x_pix) - cur_x_pix, (p[1] + self.origin_y_pix) - cur_y_pix) * self.resolution
+                self.scan.ranges[i] = dist + np.random.multivariate_normal([0], np.diag([0.005**2]), 1)
+
+        self.scan.header.stamp = self.get_clock().now().to_msg()
+        self.scan_pub.publish(self.scan)
+
 
 def main(args=None):
     try:
         rclpy.init(args=args)
-        node = ScanNode()
+        node = DummyScan("/map", "/scan", "wheels_base_laser_link", "odom", 0.01, 10, -2., 2., 0.05)
+        # executor = MultiThreadedExecutor()
+        # rclpy.spin(node,executor)
         rclpy.spin(node)
     except (KeyboardInterrupt, rclpy.executors.ExternalShutdownException):
         pass
     finally:
-        node.destroy_node()
         rclpy.try_shutdown()
+        node.destroy_node()
 
 
 if __name__ == '__main__':

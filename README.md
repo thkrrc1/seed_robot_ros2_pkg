@@ -9,21 +9,55 @@
     $ sudo apt update
     $ sudo apt upgrade
     ```
-2. pip3インストール
+
+2. ディスプレイサーバーをwaylandからX11に変更する
+    1. 設定されているディスプレイサーバー確認
+        ※ 実行結果が"wayland"ではなく"X11"の場合はそのままで良いです
+        ``` terminal
+        $ echo $XDG_SESSION_TYPE
+        ```
+    1. X11を使うために以下をインストール
+        ```terminal
+        $ sudo apt install xorg openbox
+        ```
+    1. 設定ファイルを書き換える
+        ```terminal
+        $ sudo nano /etc/gdm3/custom.conf
+        ```
+        ファイル内でコメントの箇所を探し"WaylandEnable=false"に設定
+        ```
+        [daemon]
+        # Uncomment the line below to force the login screen to use Xorg
+        WaylandEnable=false
+        ```
+    1. 再起動
+        ```terminal
+        $ reboot
+        ```
+        再度以下のコマンドを実行し"X11"と表示されればok
+        ``` terminal
+        $ echo $XDG_SESSION_TYPE
+        ```
+3. pip3インストール
     ```terminal
     $ sudo apt install python3-pip
     ```
 
+4. .bashrc追記
+    ```terminal
+    $ echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
+    $ echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+    ```
 ## 2. ROS2 jazzyインストール
 公式サイトの手順に従いROS2 jazzyをインストールする
-1. インストール  
+1. インストール
 [ROS2 jazzy : Installation Ubuntu (Debian packages)](https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html)
 
-2. 環境設定  
+2. 環境設定
 [Configuring environment](https://docs.ros.org/en/jazzy/Tutorials/Beginner-CLI-Tools/Configuring-ROS2-Environment.html)  
 ※「3.1 The ROS_DOMAIN_ID variable」の設定は不要, 
 
-3. ビルドの確認  
+3. ビルドの確認
 [Using colcon to build packages](https://docs.ros.org/en/jazzy/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html)  
 4. colcon cleanをインストール
     ```terminal
@@ -49,22 +83,44 @@
 2. seed_ros2_pkgをインストール
     ```terminal
     $ cd ~/ros2_ws/src
-    $ git clone --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
+    $ git clone --recurse-submodules git@github.com:thkrrc1/seed_robot_ros2_pkg.git
     ```
 3. その他パッケージインストール
     ```
-    $ sudo apt install ros-jazzy-nav2-bringup
-    $ sudo apt-get install ros-jazzy-laser-proc
-    $ sudo apt-get install ros-jazzy-laser-filters
-    $ sudo apt-get install ros-jazzy-ros2-control-cmake
-    $ sudo apt-get install ros-jazzy-tf-transformations
-    $ sudo apt-get install ros-jazzy-moveit
-    $ sudo apt install ros-jazzy-moveit-ros-planning-interface
-    $ sudo apt install ros-jazzy-moveit-core ros-jazzy-moveit-common ros-jazzy-moveit-ros-planning
-    $ sudo apt install ros-jazzy-moveit-visual-tools
-    $ sudo apt install mplayer
-    $ sudo apt install ros-jazzy-joy-linux
-    $ sudo apt install ros-jazzy-joy-linux-dbgsym
+    sudo apt install -y \
+    git \
+    mplayer \
+    python3-pip \
+    python3-colcon-clean \
+    python3-colcon-common-extensions \
+    libqt5svg5-dev \
+    qtmultimedia5-dev \
+    libqt5multimedia5-plugins \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
+    xserver-xorg-video-dummy \
+    ros-jazzy-nav2-bringup \
+    ros-jazzy-apriltag \
+    ros-jazzy-ros2-control \
+    ros-jazzy-ros2-control-test-assets \
+    ros-jazzy-ros2-controllers \
+    ros-jazzy-realsense2-camera \
+    ros-jazzy-joy-linux \
+    ros-jazzy-laser-proc \
+    ros-jazzy-laser-filters \
+    ros-jazzy-ros2-control-cmake \
+    ros-jazzy-tf-transformations \
+    ros-jazzy-moveit \
+    ros-jazzy-moveit-ros-planning-interface \
+    ros-jazzy-moveit-core \
+    ros-jazzy-moveit-common \
+    ros-jazzy-moveit-ros-planning \
+    ros-jazzy-moveit-visual-tools \
+    ros-jazzy-srdfdom \
+    open-jtalk \
+    open-jtalk-mecab-naist-jdic
     ```
 4. パッチの適用
     ```
@@ -76,10 +132,10 @@
     $ cd ~/ros2_ws/src/seed_robot_ros2_pkg/robots
     $ python3 clone_robots.py
     ```
-    実行すると下記メッセージが表示されるので、ロボット名を入力してください。（例：lifter_mover）  
+    実行すると下記メッセージが表示されるので、ロボット名を入力してください。（例：noid_lifter_mover）  
     プロジェクトが存在する場合はクローンが開始されます。
     ```
-    クローンしたいロボット名を入力してください：　lifter_mover
+    クローンしたいロボット名を入力してください：　noid_lifter_mover
     ```
     
     ※　下記メッセージが表示されている場合はクローンに失敗しています。
@@ -93,6 +149,7 @@
     $ cd ~/ros2_ws
     $ source install/setup.bash
     ```
+
 ## 4.Udevの設定（ロボットを持っている場合）
 ロボットのUSBをPCにまだ登録していない場合は、登録する必要があります。
 (``/etc/udev/rules.d/90-aero.rules``がすでにある場合、こちらの作業は必要ありません。)
@@ -112,4 +169,3 @@
 ```terminal
 $ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets ros-jazzy-ros2-control 
 ```
-

@@ -15,7 +15,6 @@ setup(
     entry_points={
         'console_scripts': [
             'dummy_scan = scripts.dummy_scan:main',
-            'init_pose_pub = scripts.init_pose_pub:main',
         ],
     },
 )
