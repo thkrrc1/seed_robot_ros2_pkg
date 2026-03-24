@@ -85,7 +85,15 @@
     $ cd ~/ros2_ws/src
     $ git clone --recurse-submodules git@github.com:thkrrc1/seed_robot_ros2_pkg.git
     ```
-3. その他パッケージインストール
+3. slam_toolboxをインストール
+    ```terminal
+    $ cd ~/ros2_ws/src
+    $ git clone -b jazzy https://github.com/SteveMacenski/slam_toolbox.git
+    $ cd slam_toolbox
+    $ git checkout 9b37f20c38890cc340cbabb1777b0d8af6c06f4d
+    ```
+
+4. その他パッケージインストール
     ```
     sudo apt install -y \
     git \
@@ -122,12 +130,12 @@
     open-jtalk \
     open-jtalk-mecab-naist-jdic
     ```
-4. パッチの適用
+5. パッチの適用
     ```
     $ cd ~/ros2_ws/src/seed_robot_ros2_pkg
     $ patch -p0 < patch/urg_node2.patch
     ```
-5. ロボットプロジェクトのクローン
+6. ロボットプロジェクトのクローン
     ```
     $ cd ~/ros2_ws/src/seed_robot_ros2_pkg/robots
     $ python3 clone_robots.py
@@ -142,7 +150,7 @@
     ```
     RuntimeError: コマンド失敗
     ```
-6. ビルド
+7. ビルド
     ```
     $ cd ~/ros2_ws
     $ colcon build --symlink-install
