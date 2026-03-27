@@ -83,7 +83,7 @@
 2. seed_ros2_pkgをインストール
     ```terminal
     $ cd ~/ros2_ws/src
-    $ git clone --recurse-submodules git@github.com:thkrrc1/seed_robot_ros2_pkg.git
+    $ git clone --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
     ```
 3. slam_toolboxをインストール
     ```terminal
@@ -96,29 +96,13 @@
 4. その他パッケージインストール
     ```
     sudo apt install -y \
-    git \
-    mplayer \
-    python3-pip \
-    python3-colcon-clean \
-    python3-colcon-common-extensions \
-    libqt5svg5-dev \
-    qtmultimedia5-dev \
-    libqt5multimedia5-plugins \
-    gstreamer1.0-plugins-good \
-    gstreamer1.0-plugins-bad \
-    gstreamer1.0-plugins-ugly \
-    gstreamer1.0-libav \
-    xserver-xorg-video-dummy \
     ros-jazzy-nav2-bringup \
-    ros-jazzy-apriltag \
-    ros-jazzy-ros2-control \
-    ros-jazzy-ros2-control-test-assets \
-    ros-jazzy-ros2-controllers \
-    ros-jazzy-realsense2-camera \
-    ros-jazzy-joy-linux \
     ros-jazzy-laser-proc \
     ros-jazzy-laser-filters \
+    ros-jazzy-ros2-control \
     ros-jazzy-ros2-control-cmake \
+    ros-jazzy-ros2-control-test-assets \
+    ros-jazzy-ros2-controllers \
     ros-jazzy-tf-transformations \
     ros-jazzy-moveit \
     ros-jazzy-moveit-ros-planning-interface \
@@ -127,8 +111,9 @@
     ros-jazzy-moveit-ros-planning \
     ros-jazzy-moveit-visual-tools \
     ros-jazzy-srdfdom \
-    open-jtalk \
-    open-jtalk-mecab-naist-jdic
+    ros-jazzy-joy-linux \
+    ros-jazzy-realsense2-camera \
+    mplayer
     ```
 5. パッチの適用
     ```
