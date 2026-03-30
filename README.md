@@ -85,42 +85,27 @@
     $ cd ~/ros2_ws/src
     $ git clone --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
     ```
-3. slam_toolboxをインストール
-    ```terminal
-    $ cd ~/ros2_ws/src
-    $ git clone -b jazzy https://github.com/SteveMacenski/slam_toolbox.git
-    $ cd slam_toolbox
-    $ git checkout 9b37f20c38890cc340cbabb1777b0d8af6c06f4d
+3. その他パッケージインストール
     ```
-
-4. その他パッケージインストール
+    $ sudo apt install ros-jazzy-nav2-bringup
+    $ sudo apt-get install ros-jazzy-laser-proc
+    $ sudo apt-get install ros-jazzy-laser-filters
+    $ sudo apt-get install ros-jazzy-ros2-control-cmake
+    $ sudo apt-get install ros-jazzy-tf-transformations
+    $ sudo apt-get install ros-jazzy-moveit
+    $ sudo apt install ros-jazzy-moveit-ros-planning-interface
+    $ sudo apt install ros-jazzy-moveit-core ros-jazzy-moveit-common ros-jazzy-moveit-ros-planning
+    $ sudo apt install ros-jazzy-moveit-visual-tools
+    $ sudo apt install mplayer
+    $ sudo apt install ros-jazzy-joy-linux
+    $ sudo apt install ros-jazzy-joy-linux-dbgsym
     ```
-    sudo apt install -y \
-    ros-jazzy-nav2-bringup \
-    ros-jazzy-laser-proc \
-    ros-jazzy-laser-filters \
-    ros-jazzy-ros2-control \
-    ros-jazzy-ros2-control-cmake \
-    ros-jazzy-ros2-control-test-assets \
-    ros-jazzy-ros2-controllers \
-    ros-jazzy-tf-transformations \
-    ros-jazzy-moveit \
-    ros-jazzy-moveit-ros-planning-interface \
-    ros-jazzy-moveit-core \
-    ros-jazzy-moveit-common \
-    ros-jazzy-moveit-ros-planning \
-    ros-jazzy-moveit-visual-tools \
-    ros-jazzy-srdfdom \
-    ros-jazzy-joy-linux \
-    ros-jazzy-realsense2-camera \
-    mplayer
-    ```
-5. パッチの適用
+4. パッチの適用
     ```
     $ cd ~/ros2_ws/src/seed_robot_ros2_pkg
     $ patch -p0 < patch/urg_node2.patch
     ```
-6. ロボットプロジェクトのクローン
+5. ロボットプロジェクトのクローン
     ```
     $ cd ~/ros2_ws/src/seed_robot_ros2_pkg/robots
     $ python3 clone_robots.py
@@ -135,14 +120,13 @@
     ```
     RuntimeError: コマンド失敗
     ```
-7. ビルド
+6. ビルド
     ```
     $ cd ~/ros2_ws
     $ colcon build --symlink-install
     $ cd ~/ros2_ws
     $ source install/setup.bash
     ```
-
 ## 4.Udevの設定（ロボットを持っている場合）
 ロボットのUSBをPCにまだ登録していない場合は、登録する必要があります。
 (``/etc/udev/rules.d/90-aero.rules``がすでにある場合、こちらの作業は必要ありません。)
