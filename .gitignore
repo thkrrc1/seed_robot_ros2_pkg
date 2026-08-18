@@ -2,3 +2,12 @@
 # Python cache
 __pycache__/
 *.pyc
+
+#robotsフォルダ内のclone_robots.pyは必要ファイル
+!/robots/clone_robots.py
+
+#robotsフォルダ内の各種ロボットパッケージは不要
+robots/
+
+# Emacs
+.#*

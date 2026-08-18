@@ -151,7 +151,6 @@ class ScanMap():
         self._map_to_img = Pose.from_ros_pose(info.origin)
         self._resolution = info.resolution
         self._map = np.array(map.data).reshape(height, width).astype(np.int8)
-        cv2.imwrite("map.jpeg",self._map)
         
         self._initialized = True
     

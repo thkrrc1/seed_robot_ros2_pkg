@@ -26,9 +26,12 @@ hardware_interface::CallbackReturn RobotHardware::on_init(const hardware_interfa
     }
 
     std::string uname = std::string(std::getenv("USER"));
+    std::string colcon_path = std::string(std::getenv("COLCON_PREFIX_PATH"));
+    std::string first = colcon_path.substr(0, colcon_path.find(':'));
+    std::string work_path = std::string(std::filesystem::path(first).parent_path());
     auto loggerCore = std::make_shared<rtlogger::SpdLogLogger>();
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    auto rotating_sink = std::make_shared < spdlog::sinks::rotating_file_sink_mt > ("logs/" + uname + "_log.txt", 1024 * 1024 * 10, 3, true);
+    auto rotating_sink = std::make_shared < spdlog::sinks::rotating_file_sink_mt > (work_path + "/logs/" + uname + "_log.txt", 1024 * 1024 * 10, 3, true);
 
     //ログ出力レベルを設定
     std::string file_log_level = "trace";
