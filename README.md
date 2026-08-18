@@ -118,10 +118,10 @@ $ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets
 ```
 
 ## 注意事項  
-- ファームウェアのバージョンについて
+- ファームウェアのバージョンについて  
   実機に書き込まれているファームウェアのバージョンによっては取得できない情報がありますので予めご了承下さい。  
-  ご不明点ございましたらTHKまでお問い合わせ下さい。  
   また、バージョンによってはパラメータの変更が必要となる場合がございますのでご注意下さい。  
+  ご不明点ございましたらTHKまでお問い合わせ下さい。  
   バージョンの確認方法は以下のコマンドを実行して確認して下さい。
   ```
   $ ros2 service call /aero_controller/get_version aero_controller_msgs/srv/GetVersion
