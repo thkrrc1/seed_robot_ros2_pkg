@@ -29,11 +29,10 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
 endforeach()
 
 add_library(hardware_interface SHARED
-  src/actuator.cpp
   src/component_parser.cpp
   src/resource_manager.cpp
-  src/sensor.cpp
-  src/system.cpp
+  src/hardware_component.cpp
+  src/hardware_component_interface.cpp
   src/lexical_casts.cpp
 )
 target_compile_features(hardware_interface PUBLIC cxx_std_17)
@@ -91,7 +90,7 @@ if(BUILD_TESTING)
   target_link_libraries(test_helpers hardware_interface)
 
   # Test lexical casts methods
-  ament_add_gtest(test_lexical_casts test/test_lexical_casts.cpp)
+  ament_add_gmock(test_lexical_casts test/test_lexical_casts.cpp)
   target_link_libraries(test_lexical_casts hardware_interface)
 
   ament_add_gmock(test_component_interfaces test/test_component_interfaces.cpp)

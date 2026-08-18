@@ -30,6 +30,7 @@
 #include "hardware_interface/actuator_interface.hpp"
 #include "hardware_interface/component_parser.hpp"
 #include "hardware_interface/hardware_component_info.hpp"
+#include "hardware_interface/helpers.hpp"
 #include "hardware_interface/sensor.hpp"
 #include "hardware_interface/sensor_interface.hpp"
 #include "hardware_interface/system.hpp"
@@ -151,6 +152,12 @@ public:
     }
   }
 
+  explicit ResourceStorage(const hardware_interface::ResourceManagerParams & rm_param)
+  : ResourceStorage(rm_param.clock, rm_param.logger)
+  {
+    handle_exception_ = rm_param.handle_exceptions;
+  }
+
   template <class HardwareT, class HardwareInterfaceT>
   [[nodiscard]] bool load_hardware(
     const HardwareInfo & hardware_info, pluginlib::ClassLoader<HardwareInterfaceT> & loader,
@@ -204,56 +211,72 @@ public:
       RCLCPP_ERROR(
         get_logger(), "Caught exception of type : %s while loading hardware: %s", typeid(ex).name(),
         ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (const std::exception & ex)
     {
       RCLCPP_ERROR(
         get_logger(), "Exception of type : %s occurred while loading hardware '%s': %s",
         typeid(ex).name(), hardware_info.name.c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
       RCLCPP_ERROR(
         get_logger(), "Unknown exception occurred while loading hardware '%s'",
         hardware_info.name.c_str());
+      handle_exception_ ? void() : throw;
     }
     return is_loaded;
   }
 
   template <class HardwareT>
-  bool initialize_hardware(const HardwareInfo & hardware_info, HardwareT & hardware)
+  bool initialize_hardware(
+    const hardware_interface::HardwareComponentParams & params, HardwareT & hardware)
   {
-    RCLCPP_INFO(get_logger(), "Initialize hardware '%s' ", hardware_info.name.c_str());
+    hardware_interface::HardwareComponentParams component_params;
+    component_params.hardware_info = params.hardware_info;
+    component_params.clock = rm_clock_;
+    component_params.logger = rm_logger_.get_child(
+      fmt::format(
+        "hardware_component.{}.{}", params.hardware_info.type, params.hardware_info.name));
+    component_params.executor = params.executor;
+    component_params.node_namespace = params.node_namespace;
+    RCLCPP_INFO(
+      get_logger(), "Initialize hardware '%s' ", component_params.hardware_info.name.c_str());
 
     bool result = false;
     try
     {
-      const rclcpp_lifecycle::State new_state =
-        hardware.initialize(hardware_info, rm_logger_, rm_clock_);
+      const rclcpp_lifecycle::State new_state = hardware.initialize(component_params);
       result = new_state.id() == lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED;
 
       if (result)
       {
         RCLCPP_INFO(
-          get_logger(), "Successful initialization of hardware '%s'", hardware_info.name.c_str());
+          get_logger(), "Successful initialization of hardware '%s'",
+          component_params.hardware_info.name.c_str());
       }
       else
       {
         RCLCPP_ERROR(
-          get_logger(), "Failed to initialize hardware '%s'", hardware_info.name.c_str());
+          get_logger(), "Failed to initialize hardware '%s'",
+          component_params.hardware_info.name.c_str());
       }
     }
     catch (const std::exception & ex)
     {
       RCLCPP_ERROR(
         get_logger(), "Exception of type : %s occurred while initializing hardware '%s': %s",
-        typeid(ex).name(), hardware_info.name.c_str(), ex.what());
+        typeid(ex).name(), component_params.hardware_info.name.c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
       RCLCPP_ERROR(
         get_logger(), "Unknown exception occurred while initializing hardware '%s'",
-        hardware_info.name.c_str());
+        component_params.hardware_info.name.c_str());
+      handle_exception_ ? void() : throw;
     }
 
     return result;
@@ -274,12 +297,14 @@ public:
       RCLCPP_ERROR(
         get_logger(), "Exception of type : %s occurred while configuring hardware '%s': %s",
         typeid(ex).name(), hardware.get_name().c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
       RCLCPP_ERROR(
         get_logger(), "Unknown exception occurred while configuring hardware '%s'",
         hardware.get_name().c_str());
+      handle_exception_ ? void() : throw;
     }
 
     if (result)
@@ -414,12 +439,14 @@ public:
       RCLCPP_ERROR(
         get_logger(), "Exception of type : %s occurred while cleaning up hardware '%s': %s",
         typeid(ex).name(), hardware.get_name().c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
       RCLCPP_ERROR(
         get_logger(), "Unknown exception occurred while cleaning up hardware '%s'",
         hardware.get_name().c_str());
+      handle_exception_ ? void() : throw;
     }
 
     if (result)
@@ -448,12 +475,14 @@ public:
       RCLCPP_ERROR(
         get_logger(), "Exception of type : %s occurred while shutting down hardware '%s': %s",
         typeid(ex).name(), hardware.get_name().c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
       RCLCPP_ERROR(
         get_logger(), "Unknown exception occurred while shutting down hardware '%s'",
         hardware.get_name().c_str());
+      handle_exception_ ? void() : throw;
     }
 
     if (result)
@@ -486,12 +515,14 @@ public:
       RCLCPP_ERROR(
         get_logger(), "Exception of type : %s occurred while activating hardware '%s': %s",
         typeid(ex).name(), hardware.get_name().c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
       RCLCPP_ERROR(
         get_logger(), "Unknown exception occurred while activating hardware '%s'",
         hardware.get_name().c_str());
+      handle_exception_ ? void() : throw;
     }
     return result;
   }
@@ -511,12 +542,14 @@ public:
       RCLCPP_ERROR(
         get_logger(), "Exception of type : %s occurred while deactivating hardware '%s': %s",
         typeid(ex).name(), hardware.get_name().c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
       RCLCPP_ERROR(
         get_logger(), "Unknown exception occurred while deactivating hardware '%s'",
         hardware.get_name().c_str());
+      handle_exception_ ? void() : throw;
     }
 
     if (result)
@@ -537,7 +570,7 @@ public:
     switch (target_state.id())
     {
       case State::PRIMARY_STATE_UNCONFIGURED:
-        switch (hardware.get_lifecycle_state().id())
+        switch (hardware.get_lifecycle_id())
         {
           case State::PRIMARY_STATE_UNCONFIGURED:
             result = true;
@@ -561,7 +594,7 @@ public:
         }
         break;
       case State::PRIMARY_STATE_INACTIVE:
-        switch (hardware.get_lifecycle_state().id())
+        switch (hardware.get_lifecycle_id())
         {
           case State::PRIMARY_STATE_UNCONFIGURED:
             result = configure_hardware(hardware);
@@ -581,7 +614,7 @@ public:
         }
         break;
       case State::PRIMARY_STATE_ACTIVE:
-        switch (hardware.get_lifecycle_state().id())
+        switch (hardware.get_lifecycle_id())
         {
           case State::PRIMARY_STATE_UNCONFIGURED:
             result = configure_hardware(hardware);
@@ -605,7 +638,7 @@ public:
         }
         break;
       case State::PRIMARY_STATE_FINALIZED:
-        switch (hardware.get_lifecycle_state().id())
+        switch (hardware.get_lifecycle_id())
         {
           case State::PRIMARY_STATE_UNCONFIGURED:
             result = shutdown_hardware(hardware);
@@ -633,16 +666,34 @@ public:
   template <class HardwareT>
   void import_state_interfaces(HardwareT & hardware)
   {
-    auto interfaces = hardware.export_state_interfaces();
-    const auto interface_names = add_state_interfaces(interfaces);
+    try
+    {
+      auto interfaces = hardware.export_state_interfaces();
+      const auto interface_names = add_state_interfaces(interfaces);
+      hardware_info_map_[hardware.get_name()].state_interfaces = interface_names;
 
-    RCLCPP_WARN_EXPRESSION(
-      get_logger(), interface_names.empty(),
-      "Importing state interfaces for the hardware '%s' returned no state interfaces.",
-      hardware.get_name().c_str());
-    hardware_info_map_[hardware.get_name()].state_interfaces = interface_names;
-    available_state_interfaces_.reserve(
-      available_state_interfaces_.capacity() + interface_names.size());
+      RCLCPP_WARN_EXPRESSION(
+        get_logger(), interface_names.empty(),
+        "Importing state interfaces for the hardware '%s' returned no state interfaces.",
+        hardware.get_name().c_str());
+    }
+    catch (const std::exception & ex)
+    {
+      RCLCPP_ERROR(
+        get_logger(),
+        "Exception of type : %s occurred while importing state interfaces for the hardware '%s' "
+        ": %s",
+        typeid(ex).name(), hardware.get_name().c_str(), ex.what());
+      handle_exception_ ? void() : throw;
+    }
+    catch (...)
+    {
+      RCLCPP_ERROR(
+        get_logger(),
+        "Unknown exception occurred while importing state interfaces for the hardware '%s'",
+        hardware.get_name().c_str());
+      handle_exception_ ? void() : throw;
+    }
   }
 
   void insert_command_interface(const CommandInterface::SharedPtr command_interface)
@@ -699,6 +750,7 @@ public:
         "Exception of type : %s occurred while importing command interfaces for the hardware '%s' "
         ": %s",
         typeid(ex).name(), hardware.get_name().c_str(), ex.what());
+      handle_exception_ ? void() : throw;
     }
     catch (...)
     {
@@ -706,24 +758,49 @@ public:
         get_logger(),
         "Unknown exception occurred while importing command interfaces for the hardware '%s'",
         hardware.get_name().c_str());
+      handle_exception_ ? void() : throw;
     }
   }
 
   void import_joint_limiters(const std::vector<HardwareInfo> & hardware_infos)
   {
+    const auto are_joint_limits_enabled =
+      [&](
+        const std::vector<hardware_interface::ComponentInfo> & comp_info,
+        const std::string & joint_name) -> bool
+    {
+      for (const auto & joint_component_info : comp_info)
+      {
+        if (joint_component_info.name == joint_name && !joint_component_info.enable_limits)
+        {
+          return false;
+        }
+      }
+      return true;
+    };
     for (const auto & hw_info : hardware_infos)
     {
       for (const auto & [joint_name, limits] : hw_info.limits)
       {
+        if (!are_joint_limits_enabled(hw_info.joints, joint_name))
+        {
+          RCLCPP_INFO(
+            get_logger(), "Joint limits are disabled for joint '%s' in hardware '%s'",
+            joint_name.c_str(), hw_info.name.c_str());
+          continue;
+        }
+
         std::vector<joint_limits::SoftJointLimits> soft_limits;
+        hard_joint_limits_.insert({joint_name, limits});
         const std::vector<joint_limits::JointLimits> hard_limits{limits};
         joint_limits::JointInterfacesCommandLimiterData data;
-        data.joint_name = joint_name;
+        data.set_joint_name(joint_name);
         limiters_data_.insert({joint_name, data});
         // If the joint limits is found in the softlimits, then extract it
         if (hw_info.soft_limits.find(joint_name) != hw_info.soft_limits.end())
         {
           soft_limits = {hw_info.soft_limits.at(joint_name)};
+          soft_joint_limits_.insert({joint_name, hw_info.soft_limits.at(joint_name)});
           RCLCPP_INFO(
             get_logger(), "Using SoftJointLimiter for joint '%s' in hardware '%s' : '%s'",
             joint_name.c_str(), hw_info.name.c_str(), soft_limits[0].to_string().c_str());
@@ -832,6 +909,7 @@ public:
    * @param period time period of the command
    * @return true if the command interfaces are out of limits and the limits are enforced
    * @return false if the command interfaces values are within limits
+   * \throws std::runtime_error if the actual position is out of bounds if commanding position
    */
   bool enforce_command_limits(const std::string & joint_name, const rclcpp::Duration & period)
   {
@@ -894,6 +972,7 @@ public:
       {
         RCLCPP_WARN(
           get_logger(), "Exception occurred while importing state interfaces: %s", e.what());
+        handle_exception_ ? void() : throw;
       }
     }
     available_state_interfaces_.reserve(
@@ -977,8 +1056,10 @@ public:
   {
     if (interface)
     {
-      for (auto & [hw_name, limiters] : joint_limiters_interface_)
+      for (auto & entry : joint_limiters_interface_)
       {
+        auto & limiters = entry.second;
+
         // If the prefix is a joint name, then bind the limiter to the command interface
         if (limiters.find(interface->get_prefix_name()) != limiters.end())
         {
@@ -1003,7 +1084,7 @@ public:
           {
             is_limited = false;
             joint_limits::JointInterfacesCommandLimiterData data;
-            data.joint_name = joint_name;
+            data.set_joint_name(joint_name);
             update_joint_limiters_data(data.joint_name, state_interface_map_, data.actual);
             if (interface_name == hardware_interface::HW_IF_POSITION)
             {
@@ -1085,16 +1166,16 @@ public:
     }
   }
 
-  // TODO(destogl): Propagate "false" up, if happens in initialize_hardware
-  bool load_and_initialize_actuator(const HardwareInfo & hardware_info)
+  bool load_and_initialize_actuator(const hardware_interface::HardwareComponentParams & params)
   {
     auto load_and_init_actuators = [&](auto & container)
     {
-      if (!load_hardware<Actuator, ActuatorInterface>(hardware_info, actuator_loader_, container))
+      if (!load_hardware<Actuator, ActuatorInterface>(
+            params.hardware_info, actuator_loader_, container))
       {
         return false;
       }
-      if (initialize_hardware(hardware_info, container.back()))
+      if (initialize_hardware(params, container.back()))
       {
         import_state_interfaces(container.back());
         import_command_interfaces(container.back());
@@ -1103,7 +1184,7 @@ public:
       {
         RCLCPP_WARN(
           get_logger(), "Actuator hardware component '%s' from plugin '%s' failed to initialize.",
-          hardware_info.name.c_str(), hardware_info.hardware_plugin_name.c_str());
+          params.hardware_info.name.c_str(), params.hardware_info.hardware_plugin_name.c_str());
         return false;
       }
       return true;
@@ -1111,15 +1192,15 @@ public:
     return load_and_init_actuators(actuators_);
   }
 
-  bool load_and_initialize_sensor(const HardwareInfo & hardware_info)
+  bool load_and_initialize_sensor(const hardware_interface::HardwareComponentParams & params)
   {
     auto load_and_init_sensors = [&](auto & container)
     {
-      if (!load_hardware<Sensor, SensorInterface>(hardware_info, sensor_loader_, container))
+      if (!load_hardware<Sensor, SensorInterface>(params.hardware_info, sensor_loader_, container))
       {
         return false;
       }
-      if (initialize_hardware(hardware_info, container.back()))
+      if (initialize_hardware(params, container.back()))
       {
         import_state_interfaces(container.back());
       }
@@ -1127,7 +1208,7 @@ public:
       {
         RCLCPP_WARN(
           get_logger(), "Sensor hardware component '%s' from plugin '%s' failed to initialize.",
-          hardware_info.name.c_str(), hardware_info.hardware_plugin_name.c_str());
+          params.hardware_info.name.c_str(), params.hardware_info.hardware_plugin_name.c_str());
         return false;
       }
       return true;
@@ -1136,15 +1217,15 @@ public:
     return load_and_init_sensors(sensors_);
   }
 
-  bool load_and_initialize_system(const HardwareInfo & hardware_info)
+  bool load_and_initialize_system(const hardware_interface::HardwareComponentParams & params)
   {
     auto load_and_init_systems = [&](auto & container)
     {
-      if (!load_hardware<System, SystemInterface>(hardware_info, system_loader_, container))
+      if (!load_hardware<System, SystemInterface>(params.hardware_info, system_loader_, container))
       {
         return false;
       }
-      if (initialize_hardware(hardware_info, container.back()))
+      if (initialize_hardware(params, container.back()))
       {
         import_state_interfaces(container.back());
         import_command_interfaces(container.back());
@@ -1153,7 +1234,7 @@ public:
       {
         RCLCPP_WARN(
           get_logger(), "System hardware component '%s' from plugin '%s' failed to initialize.",
-          hardware_info.name.c_str(), hardware_info.hardware_plugin_name.c_str());
+          params.hardware_info.name.c_str(), params.hardware_info.hardware_plugin_name.c_str());
         return false;
       }
       return true;
@@ -1162,12 +1243,13 @@ public:
   }
 
   void initialize_actuator(
-    std::unique_ptr<ActuatorInterface> actuator, const HardwareInfo & hardware_info)
+    std::unique_ptr<ActuatorInterface> actuator,
+    const hardware_interface::HardwareComponentParams & params)
   {
     auto init_actuators = [&](auto & container)
     {
       container.emplace_back(Actuator(std::move(actuator)));
-      if (initialize_hardware(hardware_info, container.back()))
+      if (initialize_hardware(params, container.back()))
       {
         import_state_interfaces(container.back());
         import_command_interfaces(container.back());
@@ -1176,7 +1258,7 @@ public:
       {
         RCLCPP_WARN(
           get_logger(), "Actuator hardware component '%s' from plugin '%s' failed to initialize.",
-          hardware_info.name.c_str(), hardware_info.hardware_plugin_name.c_str());
+          params.hardware_info.name.c_str(), params.hardware_info.hardware_plugin_name.c_str());
       }
     };
 
@@ -1184,12 +1266,13 @@ public:
   }
 
   void initialize_sensor(
-    std::unique_ptr<SensorInterface> sensor, const HardwareInfo & hardware_info)
+    std::unique_ptr<SensorInterface> sensor,
+    const hardware_interface::HardwareComponentParams & params)
   {
     auto init_sensors = [&](auto & container)
     {
       container.emplace_back(Sensor(std::move(sensor)));
-      if (initialize_hardware(hardware_info, container.back()))
+      if (initialize_hardware(params, container.back()))
       {
         import_state_interfaces(container.back());
       }
@@ -1197,7 +1280,7 @@ public:
       {
         RCLCPP_WARN(
           get_logger(), "Sensor hardware component '%s' from plugin '%s' failed to initialize.",
-          hardware_info.name.c_str(), hardware_info.hardware_plugin_name.c_str());
+          params.hardware_info.name.c_str(), params.hardware_info.hardware_plugin_name.c_str());
       }
     };
 
@@ -1205,12 +1288,13 @@ public:
   }
 
   void initialize_system(
-    std::unique_ptr<SystemInterface> system, const HardwareInfo & hardware_info)
+    std::unique_ptr<SystemInterface> system,
+    const hardware_interface::HardwareComponentParams & params)
   {
     auto init_systems = [&](auto & container)
     {
       container.emplace_back(System(std::move(system)));
-      if (initialize_hardware(hardware_info, container.back()))
+      if (initialize_hardware(params, container.back()))
       {
         import_state_interfaces(container.back());
         import_command_interfaces(container.back());
@@ -1219,7 +1303,7 @@ public:
       {
         RCLCPP_WARN(
           get_logger(), "System hardware component '%s' from plugin '%s' failed to initialize.",
-          hardware_info.name.c_str(), hardware_info.hardware_plugin_name.c_str());
+          params.hardware_info.name.c_str(), params.hardware_info.hardware_plugin_name.c_str());
       }
     };
 
@@ -1283,6 +1367,9 @@ public:
   // Logger and Clock interfaces
   rclcpp::Clock::SharedPtr rm_clock_;
   rclcpp::Logger rm_logger_;
+  rclcpp::Executor::WeakPtr executor_;
+  std::string node_namespace_;
+  bool handle_exception_ = true;
 
   std::vector<Actuator> actuators_;
   std::vector<Sensor> sensors_;
@@ -1321,6 +1408,10 @@ public:
 
   std::string robot_description_;
 
+  // Unordered map of the hard and soft limits for the joints
+  std::unordered_map<std::string, joint_limits::JointLimits> hard_joint_limits_;
+  std::unordered_map<std::string, joint_limits::SoftJointLimits> soft_joint_limits_;
+
   /// The callback to be called when a component state is switched
   std::function<void()> on_component_state_switch_callback_ = nullptr;
 
@@ -1336,12 +1427,13 @@ public:
 ResourceManager::ResourceManager(
   rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface,
   rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr logger_interface)
-: resource_storage_(std::make_unique<ResourceStorage>(clock_interface, logger_interface))
+: ResourceManager(
+    constructParams(clock_interface->get_clock(), logger_interface->get_logger()), false)
 {
 }
 
 ResourceManager::ResourceManager(rclcpp::Clock::SharedPtr clock, rclcpp::Logger logger)
-: resource_storage_(std::make_unique<ResourceStorage>(clock, logger))
+: ResourceManager(constructParams(clock, logger), false)
 {
 }
 
@@ -1351,36 +1443,52 @@ ResourceManager::ResourceManager(
   const std::string & urdf, rclcpp::node_interfaces::NodeClockInterface::SharedPtr clock_interface,
   rclcpp::node_interfaces::NodeLoggingInterface::SharedPtr logger_interface, bool activate_all,
   const unsigned int update_rate)
-: resource_storage_(std::make_unique<ResourceStorage>(clock_interface, logger_interface))
+: ResourceManager(
+    constructParams(
+      clock_interface->get_clock(), logger_interface->get_logger(), urdf, activate_all,
+      update_rate),
+    true)
 {
-  resource_storage_->robot_description_ = urdf;
-  load_and_initialize_components(urdf, update_rate);
-
-  if (activate_all)
-  {
-    for (auto const & hw_info : resource_storage_->hardware_info_map_)
-    {
-      using lifecycle_msgs::msg::State;
-      rclcpp_lifecycle::State state(State::PRIMARY_STATE_ACTIVE, lifecycle_state_names::ACTIVE);
-      set_component_state(hw_info.first, state);
-    }
-  }
 }
 
 ResourceManager::ResourceManager(
   const std::string & urdf, rclcpp::Clock::SharedPtr clock, rclcpp::Logger logger,
   bool activate_all, const unsigned int update_rate)
-: resource_storage_(std::make_unique<ResourceStorage>(clock, logger))
+: ResourceManager(constructParams(clock, logger, urdf, activate_all, update_rate), true)
 {
-  load_and_initialize_components(urdf, update_rate);
+}
 
-  if (activate_all)
+ResourceManager::ResourceManager(
+  const hardware_interface::ResourceManagerParams & params, bool load)
+: resource_storage_(std::make_unique<ResourceStorage>(params)), params_(params)
+{
+  RCLCPP_WARN_EXPRESSION(
+    params.logger, params.allow_controller_activation_with_inactive_hardware,
+    "The parameter 'allow_controller_activation_with_inactive_hardware' is set to true. It is "
+    "recommended to use the settings to false in order to avoid controllers to use inactive "
+    "hardware components and to avoid any unexpected behavior. This feature might be removed in "
+    "future releases and will be defaulted to false.");
+  RCLCPP_WARN_EXPRESSION(
+    params.logger, !params.return_failed_hardware_names_on_return_deactivate_write_cycle_,
+    "The parameter 'deactivate_controllers_on_hardware_self_deactivate' is set to false. It is "
+    "recommended to use the settings to true in order to avoid controllers to use inactive "
+    "hardware components and to avoid any unexpected behavior. This feature might be removed in "
+    "future releases and will be defaulted to true.");
+  allow_controller_activation_with_inactive_hardware_ =
+    params.allow_controller_activation_with_inactive_hardware;
+  return_failed_hardware_names_on_return_deactivate_write_cycle_ =
+    params.return_failed_hardware_names_on_return_deactivate_write_cycle_;
+  if (load)
   {
-    for (auto const & hw_info : resource_storage_->hardware_info_map_)
+    load_and_initialize_components(params);
+    if (params.activate_all)
     {
-      using lifecycle_msgs::msg::State;
-      rclcpp_lifecycle::State state(State::PRIMARY_STATE_ACTIVE, lifecycle_state_names::ACTIVE);
-      set_component_state(hw_info.first, state);
+      for (auto const & hw_info : resource_storage_->hardware_info_map_)
+      {
+        using lifecycle_msgs::msg::State;
+        rclcpp_lifecycle::State state(State::PRIMARY_STATE_ACTIVE, lifecycle_state_names::ACTIVE);
+        set_component_state(hw_info.first, state);
+      }
     }
   }
 }
@@ -1409,6 +1517,8 @@ bool ResourceManager::load_and_initialize_components(
 
   resource_storage_->robot_description_ = urdf;
   resource_storage_->cm_update_rate_ = update_rate;
+  params_.robot_description = urdf;
+  params_.update_rate = update_rate;
 
   auto hardware_info = hardware_interface::parse_control_resources_from_urdf(urdf);
   // Set the update rate for all hardware components
@@ -1422,6 +1532,7 @@ bool ResourceManager::load_and_initialize_components(
   const std::string actuator_type = "actuator";
 
   std::lock_guard<std::recursive_mutex> resource_guard(resources_lock_);
+  std::lock_guard<std::recursive_mutex> limiters_guard(joint_limiters_lock_);
   for (const auto & individual_hardware_info : hardware_info)
   {
     // Check for identical names
@@ -1437,11 +1548,17 @@ bool ResourceManager::load_and_initialize_components(
       components_are_loaded_and_initialized_ = false;
       break;
     }
+    hardware_interface::HardwareComponentParams interface_params;
+    interface_params.hardware_info = individual_hardware_info;
+    interface_params.executor = resource_storage_->executor_;
+    interface_params.clock = resource_storage_->rm_clock_;
+    interface_params.logger = resource_storage_->rm_logger_;
+    interface_params.node_namespace = resource_storage_->node_namespace_;
 
     if (individual_hardware_info.type == actuator_type)
     {
       std::scoped_lock guard(resource_interfaces_lock_, claimed_command_interfaces_lock_);
-      if (!resource_storage_->load_and_initialize_actuator(individual_hardware_info))
+      if (!resource_storage_->load_and_initialize_actuator(interface_params))
       {
         components_are_loaded_and_initialized_ = false;
         break;
@@ -1450,7 +1567,7 @@ bool ResourceManager::load_and_initialize_components(
     if (individual_hardware_info.type == sensor_type)
     {
       std::lock_guard<std::recursive_mutex> guard(resource_interfaces_lock_);
-      if (!resource_storage_->load_and_initialize_sensor(individual_hardware_info))
+      if (!resource_storage_->load_and_initialize_sensor(interface_params))
       {
         components_are_loaded_and_initialized_ = false;
         break;
@@ -1459,7 +1576,7 @@ bool ResourceManager::load_and_initialize_components(
     if (individual_hardware_info.type == system_type)
     {
       std::scoped_lock guard(resource_interfaces_lock_, claimed_command_interfaces_lock_);
-      if (!resource_storage_->load_and_initialize_system(individual_hardware_info))
+      if (!resource_storage_->load_and_initialize_system(interface_params))
       {
         components_are_loaded_and_initialized_ = false;
         break;
@@ -1483,6 +1600,21 @@ bool ResourceManager::load_and_initialize_components(
   }
 
   return components_are_loaded_and_initialized_;
+}
+
+bool ResourceManager::load_and_initialize_components(
+  const hardware_interface::ResourceManagerParams & params)
+{
+  resource_storage_->rm_clock_ = params.clock;
+  resource_storage_->rm_logger_ = params.logger;
+  resource_storage_->robot_description_ = params.robot_description;
+  resource_storage_->cm_update_rate_ = params.update_rate;
+  resource_storage_->executor_ = params.executor;
+  resource_storage_->node_namespace_ = params.node_namespace;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+  return load_and_initialize_components(params.robot_description, params.update_rate);
+#pragma GCC diagnostic pop
 }
 
 void ResourceManager::import_joint_limiters(const std::string & urdf)
@@ -1533,10 +1665,7 @@ std::vector<std::string> ResourceManager::available_state_interfaces() const
 bool ResourceManager::state_interface_is_available(const std::string & name) const
 {
   std::lock_guard<std::recursive_mutex> guard(resource_interfaces_lock_);
-  return std::find(
-           resource_storage_->available_state_interfaces_.begin(),
-           resource_storage_->available_state_interfaces_.end(),
-           name) != resource_storage_->available_state_interfaces_.end();
+  return ros2_control::has_item(resource_storage_->available_state_interfaces_, name);
 }
 
 std::string ResourceManager::get_state_interface_data_type(const std::string & name) const
@@ -1577,9 +1706,7 @@ void ResourceManager::make_controller_exported_state_interfaces_available(
   auto interface_names =
     resource_storage_->controllers_exported_state_interfaces_map_.at(controller_name);
   std::lock_guard<std::recursive_mutex> guard(resource_interfaces_lock_);
-  resource_storage_->available_state_interfaces_.insert(
-    resource_storage_->available_state_interfaces_.end(), interface_names.begin(),
-    interface_names.end());
+  ros2_control::add_items(resource_storage_->available_state_interfaces_, interface_names);
 }
 
 // CM API: Called in "update"-thread
@@ -1608,6 +1735,12 @@ void ResourceManager::make_controller_exported_state_interfaces_unavailable(
 void ResourceManager::remove_controller_exported_state_interfaces(
   const std::string & controller_name)
 {
+  if (
+    resource_storage_->controllers_exported_state_interfaces_map_.find(controller_name) ==
+    resource_storage_->controllers_exported_state_interfaces_map_.end())
+  {
+    return;
+  }
   auto interface_names =
     resource_storage_->controllers_exported_state_interfaces_map_.at(controller_name);
   resource_storage_->controllers_exported_state_interfaces_map_.erase(controller_name);
@@ -1640,9 +1773,7 @@ void ResourceManager::make_controller_reference_interfaces_available(
   auto interface_names =
     resource_storage_->controllers_reference_interfaces_map_.at(controller_name);
   std::lock_guard<std::recursive_mutex> guard(resource_interfaces_lock_);
-  resource_storage_->available_command_interfaces_.insert(
-    resource_storage_->available_command_interfaces_.end(), interface_names.begin(),
-    interface_names.end());
+  ros2_control::add_items(resource_storage_->available_command_interfaces_, interface_names);
 }
 
 // CM API: Called in "update"-thread
@@ -1670,6 +1801,12 @@ void ResourceManager::make_controller_reference_interfaces_unavailable(
 // CM API: Called in "callback/slow"-thread
 void ResourceManager::remove_controller_reference_interfaces(const std::string & controller_name)
 {
+  if (
+    resource_storage_->controllers_reference_interfaces_map_.find(controller_name) ==
+    resource_storage_->controllers_reference_interfaces_map_.end())
+  {
+    return;
+  }
   auto interface_names =
     resource_storage_->controllers_reference_interfaces_map_.at(controller_name);
   resource_storage_->controllers_reference_interfaces_map_.erase(controller_name);
@@ -1790,10 +1927,7 @@ std::vector<std::string> ResourceManager::available_command_interfaces() const
 bool ResourceManager::command_interface_is_available(const std::string & name) const
 {
   std::lock_guard<std::recursive_mutex> guard(resource_interfaces_lock_);
-  return std::find(
-           resource_storage_->available_command_interfaces_.begin(),
-           resource_storage_->available_command_interfaces_.end(),
-           name) != resource_storage_->available_command_interfaces_.end();
+  return ros2_control::has_item(resource_storage_->available_command_interfaces_, name);
 }
 
 std::string ResourceManager::get_command_interface_data_type(const std::string & name) const
@@ -1814,28 +1948,52 @@ std::string ResourceManager::get_command_interface_data_type(const std::string &
 void ResourceManager::import_component(
   std::unique_ptr<ActuatorInterface> actuator, const HardwareInfo & hardware_info)
 {
-  std::lock_guard<std::recursive_mutex> guard(resources_lock_);
-  resource_storage_->initialize_actuator(std::move(actuator), hardware_info);
-  read_write_status.failed_hardware_names.reserve(
-    resource_storage_->actuators_.size() + resource_storage_->sensors_.size() +
-    resource_storage_->systems_.size());
+  HardwareComponentParams params;
+  params.hardware_info = hardware_info;
+  import_component(std::move(actuator), params);
 }
 
 void ResourceManager::import_component(
   std::unique_ptr<SensorInterface> sensor, const HardwareInfo & hardware_info)
 {
+  HardwareComponentParams params;
+  params.hardware_info = hardware_info;
+  import_component(std::move(sensor), params);
+}
+
+void ResourceManager::import_component(
+  std::unique_ptr<SystemInterface> system, const HardwareInfo & hardware_info)
+{
+  HardwareComponentParams params;
+  params.hardware_info = hardware_info;
+  import_component(std::move(system), params);
+}
+
+void ResourceManager::import_component(
+  std::unique_ptr<ActuatorInterface> actuator, const HardwareComponentParams & params)
+{
   std::lock_guard<std::recursive_mutex> guard(resources_lock_);
-  resource_storage_->initialize_sensor(std::move(sensor), hardware_info);
+  resource_storage_->initialize_actuator(std::move(actuator), params);
   read_write_status.failed_hardware_names.reserve(
     resource_storage_->actuators_.size() + resource_storage_->sensors_.size() +
     resource_storage_->systems_.size());
 }
 
 void ResourceManager::import_component(
-  std::unique_ptr<SystemInterface> system, const HardwareInfo & hardware_info)
+  std::unique_ptr<SensorInterface> sensor, const HardwareComponentParams & params)
 {
   std::lock_guard<std::recursive_mutex> guard(resources_lock_);
-  resource_storage_->initialize_system(std::move(system), hardware_info);
+  resource_storage_->initialize_sensor(std::move(sensor), params);
+  read_write_status.failed_hardware_names.reserve(
+    resource_storage_->actuators_.size() + resource_storage_->sensors_.size() +
+    resource_storage_->systems_.size());
+}
+
+void ResourceManager::import_component(
+  std::unique_ptr<SystemInterface> system, const HardwareComponentParams & params)
+{
+  std::lock_guard<std::recursive_mutex> guard(resources_lock_);
+  resource_storage_->initialize_system(std::move(system), params);
   read_write_status.failed_hardware_names.reserve(
     resource_storage_->actuators_.size() + resource_storage_->sensors_.size() +
     resource_storage_->systems_.size());
@@ -1849,8 +2007,8 @@ ResourceManager::get_components_status()
   {
     for (auto & component : container)
     {
-      resource_storage_->hardware_info_map_[component.get_name()].state =
-        component.get_lifecycle_state();
+      resource_storage_->hardware_info_map_[component.get_name()].state = rclcpp_lifecycle::State(
+        component.get_lifecycle_state().id(), component.get_lifecycle_state().label());
     }
   };
 
@@ -1859,6 +2017,18 @@ ResourceManager::get_components_status()
   loop_and_get_state(resource_storage_->systems_);
 
   return resource_storage_->hardware_info_map_;
+}
+
+const std::unordered_map<std::string, joint_limits::JointLimits> &
+ResourceManager::get_hard_joint_limits() const
+{
+  return resource_storage_->hard_joint_limits_;
+}
+
+const std::unordered_map<std::string, joint_limits::SoftJointLimits> &
+ResourceManager::get_soft_joint_limits() const
+{
+  return resource_storage_->soft_joint_limits_;
 }
 
 // CM API: Called in "callback/slow"-thread
@@ -1926,7 +2096,10 @@ bool ResourceManager::prepare_command_mode_switch(
 
   const auto & hardware_info_map = resource_storage_->hardware_info_map_;
   auto call_prepare_mode_switch =
-    [&start_interfaces, &stop_interfaces, &hardware_info_map, logger = get_logger()](
+    [&start_interfaces, &stop_interfaces, &hardware_info_map, logger = get_logger(),
+     allow_controller_activation_with_inactive_hardware =
+       allow_controller_activation_with_inactive_hardware_,
+     handle_exceptions = params_.handle_exceptions](
       auto & components, auto & start_interfaces_buffer, auto & stop_interfaces_buffer)
   {
     bool ret = true;
@@ -1943,9 +2116,19 @@ bool ResourceManager::prepare_command_mode_switch(
         continue;
       }
       if (
-        component.get_lifecycle_state().id() ==
-          lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE ||
-        component.get_lifecycle_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+        !start_interfaces_buffer.empty() &&
+        component.get_lifecycle_id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE &&
+        !allow_controller_activation_with_inactive_hardware)
+      {
+        RCLCPP_WARN(
+          logger, "Component '%s' is in INACTIVE state, but has start interfaces to switch: \n%s",
+          component.get_name().c_str(),
+          interfaces_to_string(start_interfaces_buffer, stop_interfaces_buffer).c_str());
+        return false;
+      }
+      if (
+        component.get_lifecycle_id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE ||
+        component.get_lifecycle_id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
         try
         {
@@ -1969,6 +2152,7 @@ bool ResourceManager::prepare_command_mode_switch(
             typeid(e).name(), component.get_name().c_str(),
             interfaces_to_string(start_interfaces_buffer, stop_interfaces_buffer).c_str(),
             e.what());
+          handle_exceptions ? void() : throw;
           ret = false;
         }
         catch (...)
@@ -1979,6 +2163,7 @@ bool ResourceManager::prepare_command_mode_switch(
             "the interfaces: \n %s",
             component.get_name().c_str(),
             interfaces_to_string(start_interfaces_buffer, stop_interfaces_buffer).c_str());
+          handle_exceptions ? void() : throw;
           ret = false;
         }
       }
@@ -2016,7 +2201,10 @@ bool ResourceManager::perform_command_mode_switch(
 
   const auto & hardware_info_map = resource_storage_->hardware_info_map_;
   auto call_perform_mode_switch =
-    [&start_interfaces, &stop_interfaces, &hardware_info_map, logger = get_logger()](
+    [&start_interfaces, &stop_interfaces, &hardware_info_map, logger = get_logger(),
+     allow_controller_activation_with_inactive_hardware =
+       allow_controller_activation_with_inactive_hardware_,
+     handle_exceptions = params_.handle_exceptions](
       auto & components, auto & start_interfaces_buffer, auto & stop_interfaces_buffer)
   {
     bool ret = true;
@@ -2033,9 +2221,19 @@ bool ResourceManager::perform_command_mode_switch(
         continue;
       }
       if (
-        component.get_lifecycle_state().id() ==
-          lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE ||
-        component.get_lifecycle_state().id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
+        !start_interfaces_buffer.empty() &&
+        component.get_lifecycle_id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE &&
+        !allow_controller_activation_with_inactive_hardware)
+      {
+        RCLCPP_WARN(
+          logger, "Component '%s' is in INACTIVE state, but has start interfaces to switch: \n%s",
+          component.get_name().c_str(),
+          interfaces_to_string(start_interfaces_buffer, stop_interfaces_buffer).c_str());
+        return false;
+      }
+      if (
+        component.get_lifecycle_id() == lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE ||
+        component.get_lifecycle_id() == lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE)
       {
         try
         {
@@ -2059,6 +2257,7 @@ bool ResourceManager::perform_command_mode_switch(
             typeid(e).name(), component.get_name().c_str(),
             interfaces_to_string(start_interfaces_buffer, stop_interfaces_buffer).c_str(),
             e.what());
+          handle_exceptions ? void() : throw;
           ret = false;
         }
         catch (...)
@@ -2070,6 +2269,7 @@ bool ResourceManager::perform_command_mode_switch(
             "the interfaces: \n %s",
             component.get_name().c_str(),
             interfaces_to_string(start_interfaces_buffer, stop_interfaces_buffer).c_str());
+          handle_exceptions ? void() : throw;
           ret = false;
         }
       }
@@ -2174,6 +2374,7 @@ return_type ResourceManager::set_component_state(
   };
 
   std::lock_guard<std::recursive_mutex> guard(resources_lock_);
+  std::lock_guard<std::recursive_mutex> limiters_guard(joint_limiters_lock_);
   bool found = find_set_component_state(
     std::bind(&ResourceStorage::set_component_state<Actuator>, resource_storage_.get(), _1, _2),
     resource_storage_->actuators_);
@@ -2227,7 +2428,7 @@ HardwareReadWriteStatus ResourceManager::read(
   {
     return read_write_status;
   }
-  auto read_components = [&](auto & components)
+  auto read_components = [&](auto & components, bool handle_exceptions)
   {
     for (auto & component : components)
     {
@@ -2284,6 +2485,7 @@ HardwareReadWriteStatus ResourceManager::read(
         RCLCPP_ERROR(
           get_logger(), "Exception of type : %s thrown during read of the component '%s': %s",
           typeid(e).name(), component_name.c_str(), e.what());
+        handle_exceptions ? void() : throw;
         ret_val = return_type::ERROR;
       }
       catch (...)
@@ -2291,6 +2493,7 @@ HardwareReadWriteStatus ResourceManager::read(
         RCLCPP_ERROR(
           get_logger(), "Unknown exception thrown during read of the component '%s'",
           component_name.c_str());
+        handle_exceptions ? void() : throw;
         ret_val = return_type::ERROR;
       }
       RCLCPP_WARN_EXPRESSION(
@@ -2306,9 +2509,9 @@ HardwareReadWriteStatus ResourceManager::read(
     }
   };
 
-  read_components(resource_storage_->actuators_);
-  read_components(resource_storage_->sensors_);
-  read_components(resource_storage_->systems_);
+  read_components(resource_storage_->actuators_, params_.handle_exceptions);
+  read_components(resource_storage_->sensors_, params_.handle_exceptions);
+  read_components(resource_storage_->systems_, params_.handle_exceptions);
 
   return read_write_status;
 }
@@ -2326,7 +2529,7 @@ HardwareReadWriteStatus ResourceManager::write(
   {
     return read_write_status;
   }
-  auto write_components = [&](auto & components)
+  auto write_components = [&](auto & components, bool handle_exceptions)
   {
     for (auto & component : components)
     {
@@ -2384,6 +2587,7 @@ HardwareReadWriteStatus ResourceManager::write(
         RCLCPP_ERROR(
           get_logger(), "Exception of type : %s thrown during write of the component '%s': %s",
           typeid(e).name(), component_name.c_str(), e.what());
+        handle_exceptions ? void() : throw;
         ret_val = return_type::ERROR;
       }
       catch (...)
@@ -2391,6 +2595,7 @@ HardwareReadWriteStatus ResourceManager::write(
         RCLCPP_ERROR(
           get_logger(), "Unknown exception thrown during write of the component '%s'",
           component_name.c_str());
+        handle_exceptions ? void() : throw;
         ret_val = return_type::ERROR;
       }
       if (ret_val == return_type::ERROR)
@@ -2406,13 +2611,16 @@ HardwareReadWriteStatus ResourceManager::write(
           lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE, lifecycle_state_names::INACTIVE);
         set_component_state(component_name, inactive_state);
         read_write_status.result = ret_val;
-        read_write_status.failed_hardware_names.push_back(component_name);
+        if (return_failed_hardware_names_on_return_deactivate_write_cycle_)
+        {
+          read_write_status.failed_hardware_names.push_back(component_name);
+        }
       }
     }
   };
 
-  write_components(resource_storage_->actuators_);
-  write_components(resource_storage_->systems_);
+  write_components(resource_storage_->actuators_, params_.handle_exceptions);
+  write_components(resource_storage_->systems_, params_.handle_exceptions);
 
   return read_write_status;
 }
@@ -2467,6 +2675,20 @@ rclcpp::Clock::SharedPtr ResourceManager::get_clock() const
 }
 
 // BEGIN: private methods
+
+hardware_interface::ResourceManagerParams ResourceManager::constructParams(
+  rclcpp::Clock::SharedPtr clock, rclcpp::Logger logger, const std::string & urdf,
+  bool activate_all, unsigned int update_rate)
+{
+  hardware_interface::ResourceManagerParams params;
+  params.clock = clock;
+  params.logger = logger;
+  params.robot_description = urdf;
+  params.activate_all = activate_all;
+  params.update_rate = update_rate;
+
+  return params;
+}
 
 bool ResourceManager::validate_storage(
   const std::vector<hardware_interface::HardwareInfo> & hardware_info) const

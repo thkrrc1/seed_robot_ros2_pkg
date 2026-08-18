@@ -2,6 +2,141 @@
 Changelog for package controller_manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+4.45.2 (2026-05-12)
+-------------------
+* Fix size assertion in test_chainable_controller (`#3284 <https://github.com/ros-controls/ros2_control/issues/3284>`_) (`#3303 <https://github.com/ros-controls/ros2_control/issues/3303>`_)
+* Fix the out of bound access of the std::vector in ChainableController (backport `#3287 <https://github.com/ros-controls/ros2_control/issues/3287>`_) (`#3288 <https://github.com/ros-controls/ros2_control/issues/3288>`_)
+* [doc] Add dedicated documentation page for running controllers asynchronously (backport `#3195 <https://github.com/ros-controls/ros2_control/issues/3195>`_) (`#3254 <https://github.com/ros-controls/ros2_control/issues/3254>`_)
+* Contributors: mergify[bot]
+
+4.45.1 (2026-04-24)
+-------------------
+
+4.45.0 (2026-04-17)
+-------------------
+
+4.44.0 (2026-04-02)
+-------------------
+* Activate hardware components by group sequentially (`#2984 <https://github.com/ros-controls/ros2_control/issues/2984>`_) (`#3169 <https://github.com/ros-controls/ros2_control/issues/3169>`_)
+* [Spawner] Allow parsing the parameter files parsed from spawner to controllers (`#3136 <https://github.com/ros-controls/ros2_control/issues/3136>`_) (`#3151 <https://github.com/ros-controls/ros2_control/issues/3151>`_)
+* [Spawner] Allow arguments per controller instead of global args (backport `#2895 <https://github.com/ros-controls/ros2_control/issues/2895>`_) (`#3052 <https://github.com/ros-controls/ros2_control/issues/3052>`_)
+* [Spawner] Fix exception of time.sleep in spawner (backport `#3124 <https://github.com/ros-controls/ros2_control/issues/3124>`_) (`#3125 <https://github.com/ros-controls/ros2_control/issues/3125>`_)
+* [Spawner] Block further SIGINTs with unload_on_kill option (`#3075 <https://github.com/ros-controls/ros2_control/issues/3075>`_) (`#3077 <https://github.com/ros-controls/ros2_control/issues/3077>`_)
+* Fix forwarding handle_exceptions parameter to resource manager (`#3107 <https://github.com/ros-controls/ros2_control/issues/3107>`_) (`#3117 <https://github.com/ros-controls/ros2_control/issues/3117>`_)
+* Add new API for chainable controller interface exporting (backport `#2988 <https://github.com/ros-controls/ros2_control/issues/2988>`_) (`#3050 <https://github.com/ros-controls/ros2_control/issues/3050>`_)
+* Fix the conditioning in extract_command_interfaces_for_controller method (`#3109 <https://github.com/ros-controls/ros2_control/issues/3109>`_) (`#3113 <https://github.com/ros-controls/ros2_control/issues/3113>`_)
+* Protect controller switching, when switching from nonRT loop (`#3060 <https://github.com/ros-controls/ros2_control/issues/3060>`_) (`#3111 <https://github.com/ros-controls/ros2_control/issues/3111>`_)
+* Consistently add <cmath> include with define for windows (backport `#3061 <https://github.com/ros-controls/ros2_control/issues/3061>`_) (`#3066 <https://github.com/ros-controls/ros2_control/issues/3066>`_)
+* Contributors: mergify[bot]
+
+4.43.0 (2026-02-03)
+-------------------
+* Add a log entry if enforce_command_limits is false (`#2998 <https://github.com/ros-controls/ros2_control/issues/2998>`_) (`#2999 <https://github.com/ros-controls/ros2_control/issues/2999>`_)
+* Replace std::for_each with idiomatic container operations (`#2986 <https://github.com/ros-controls/ros2_control/issues/2986>`_) (`#2990 <https://github.com/ros-controls/ros2_control/issues/2990>`_)
+* Improve warning if spawner cannot acquire filelock (`#2970 <https://github.com/ros-controls/ros2_control/issues/2970>`_) (`#2972 <https://github.com/ros-controls/ros2_control/issues/2972>`_)
+* [Simulation] Catch exceptions of sleep_until context (`#2963 <https://github.com/ros-controls/ros2_control/issues/2963>`_) (`#2964 <https://github.com/ros-controls/ros2_control/issues/2964>`_)
+* Fix typo in TODO comments: MutliThreadedExecutor -> MultiThreadedExecutor (`#2958 <https://github.com/ros-controls/ros2_control/issues/2958>`_) (`#2959 <https://github.com/ros-controls/ros2_control/issues/2959>`_)
+* Contributors: mergify[bot]
+
+4.42.2 (2026-01-10)
+-------------------
+* Fix the duplicate entries in the controller exported interfaces (`#2951 <https://github.com/ros-controls/ros2_control/issues/2951>`_) (`#2954 <https://github.com/ros-controls/ros2_control/issues/2954>`_)
+* Contributors: mergify[bot]
+
+4.42.1 (2025-12-30)
+-------------------
+
+4.42.0 (2025-12-29)
+-------------------
+* Add new interface_configuration_types and reusable methods (`#2902 <https://github.com/ros-controls/ros2_control/issues/2902>`_) (`#2935 <https://github.com/ros-controls/ros2_control/issues/2935>`_)
+* Add `cleanup_controller` lifecycle transition (backport `#2414 <https://github.com/ros-controls/ros2_control/issues/2414>`_) (`#2914 <https://github.com/ros-controls/ros2_control/issues/2914>`_)
+* Contributors: mergify[bot]
+
+4.41.0 (2025-12-10)
+-------------------
+* Calculate achievable update rate of controllers (backport `#2828 <https://github.com/ros-controls/ros2_control/issues/2828>`_) (`#2843 <https://github.com/ros-controls/ros2_control/issues/2843>`_)
+* Fix the blocking calls of lifecycle_state in the real-time loop (backport `#2884 <https://github.com/ros-controls/ros2_control/issues/2884>`_) (`#2890 <https://github.com/ros-controls/ros2_control/issues/2890>`_)
+* Contributors: mergify[bot]
+
+4.40.0 (2025-12-01)
+-------------------
+* Fix the CM statistics async publish placement (`#2865 <https://github.com/ros-controls/ros2_control/issues/2865>`_) (`#2868 <https://github.com/ros-controls/ros2_control/issues/2868>`_)
+* Fix failing controller switch when using ::ALL command interface configuration (`#2856 <https://github.com/ros-controls/ros2_control/issues/2856>`_) (`#2858 <https://github.com/ros-controls/ros2_control/issues/2858>`_)
+* Add `handle_exceptions` parameter to controller manager (`#2807 <https://github.com/ros-controls/ros2_control/issues/2807>`_) (`#2849 <https://github.com/ros-controls/ros2_control/issues/2849>`_)
+* Fix dependencies of controller_manager (backport `#2836 <https://github.com/ros-controls/ros2_control/issues/2836>`_) (`#2838 <https://github.com/ros-controls/ros2_control/issues/2838>`_)
+* Contributors: mergify[bot]
+
+4.39.2 (2025-11-09)
+-------------------
+* Avoid deadlocks for failed command switching (`#2774 <https://github.com/ros-controls/ros2_control/issues/2774>`_) (`#2796 <https://github.com/ros-controls/ros2_control/issues/2796>`_)
+* Fix ANSI escape code pollution in log output (backport `#2741 <https://github.com/ros-controls/ros2_control/issues/2741>`_) (`#2783 <https://github.com/ros-controls/ros2_control/issues/2783>`_)
+* Contributors: mergify[bot]
+
+4.39.1 (2025-11-03)
+-------------------
+* Fail early for the resource conflicts between the activating controllers (`#2760 <https://github.com/ros-controls/ros2_control/issues/2760>`_) (`#2772 <https://github.com/ros-controls/ros2_control/issues/2772>`_)
+* Contributors: mergify[bot]
+
+4.39.0 (2025-10-27)
+-------------------
+* Deactivate the whole controller chain if one of the update results in ERROR (`#2681 <https://github.com/ros-controls/ros2_control/issues/2681>`_) (`#2743 <https://github.com/ros-controls/ros2_control/issues/2743>`_)
+* Deactivate the controller chain upon failed group activation (`#2669 <https://github.com/ros-controls/ros2_control/issues/2669>`_) (`#2737 <https://github.com/ros-controls/ros2_control/issues/2737>`_)
+* Fix concurrent spinning of the test_node (backport `#2721 <https://github.com/ros-controls/ros2_control/issues/2721>`_) (`#2727 <https://github.com/ros-controls/ros2_control/issues/2727>`_)
+* [Spawner] Fix failing makedirs on multiple spawners at startup (`#2698 <https://github.com/ros-controls/ros2_control/issues/2698>`_) (`#2699 <https://github.com/ros-controls/ros2_control/issues/2699>`_)
+* [Spawner] Create the FileLock in the ROS_HOME location (`#2677 <https://github.com/ros-controls/ros2_control/issues/2677>`_) (`#2685 <https://github.com/ros-controls/ros2_control/issues/2685>`_)
+* Fix the same hardware component node naming issue with multiple controller managers setup (`#2657 <https://github.com/ros-controls/ros2_control/issues/2657>`_) (`#2666 <https://github.com/ros-controls/ros2_control/issues/2666>`_)
+* Move clock availability check to controller manager thread (`#2654 <https://github.com/ros-controls/ros2_control/issues/2654>`_) (`#2660 <https://github.com/ros-controls/ros2_control/issues/2660>`_)
+* increase tolerance of the controller manager tests (`#2629 <https://github.com/ros-controls/ros2_control/issues/2629>`_) (`#2636 <https://github.com/ros-controls/ros2_control/issues/2636>`_)
+* [Controllers] Set async thread properties via parameters (`#2613 <https://github.com/ros-controls/ros2_control/issues/2613>`_) (`#2614 <https://github.com/ros-controls/ros2_control/issues/2614>`_)
+* Contributors: mergify[bot]
+
+4.38.0 (2025-10-03)
+-------------------
+* Ability to switch controllers in non-realtime loop (backport `#2452 <https://github.com/ros-controls/ros2_control/issues/2452>`_) (`#2610 <https://github.com/ros-controls/ros2_control/issues/2610>`_)
+* Add parameter to allow controllers with inactive hardware components (`#2501 <https://github.com/ros-controls/ros2_control/issues/2501>`_) (`#2584 <https://github.com/ros-controls/ros2_control/issues/2584>`_)
+* Add `ControllerInterfaceParams` to initialize the Controllers (backport `#2390 <https://github.com/ros-controls/ros2_control/issues/2390>`_) (`#2601 <https://github.com/ros-controls/ros2_control/issues/2601>`_)
+* [Controllers] Receive a valid period on the first update cycle (`#2572 <https://github.com/ros-controls/ros2_control/issues/2572>`_) (`#2602 <https://github.com/ros-controls/ros2_control/issues/2602>`_)
+* Added parameters to handle the overruns behaviour and prints (`#2546 <https://github.com/ros-controls/ros2_control/issues/2546>`_) (`#2603 <https://github.com/ros-controls/ros2_control/issues/2603>`_)
+* Fix exclusive hardware control mode switching on controller failed activation (`#1522 <https://github.com/ros-controls/ros2_control/issues/1522>`_) (`#2580 <https://github.com/ros-controls/ros2_control/issues/2580>`_)
+* Fix the skipped cycles of controllers running at different rate (`#2557 <https://github.com/ros-controls/ros2_control/issues/2557>`_) (`#2573 <https://github.com/ros-controls/ros2_control/issues/2573>`_)
+* Fix shadowed variables, redefinition and old-style casts (`#2569 <https://github.com/ros-controls/ros2_control/issues/2569>`_) (`#2570 <https://github.com/ros-controls/ros2_control/issues/2570>`_)
+* [Spawner] Release the lock while waiting for the interrupt (`#2559 <https://github.com/ros-controls/ros2_control/issues/2559>`_) (`#2567 <https://github.com/ros-controls/ros2_control/issues/2567>`_)
+* Fix the reloading controller with failed activation (`#2544 <https://github.com/ros-controls/ros2_control/issues/2544>`_) (`#2545 <https://github.com/ros-controls/ros2_control/issues/2545>`_)
+* Don't print the overrun warnings for the simulations (`#2539 <https://github.com/ros-controls/ros2_control/issues/2539>`_) (`#2541 <https://github.com/ros-controls/ros2_control/issues/2541>`_)
+* Contributors: mergify[bot]
+
+4.37.0 (2025-09-12)
+-------------------
+* Publish controller manager statistics to better introspect the timings (backport `#2449 <https://github.com/ros-controls/ros2_control/issues/2449>`_) (`#2521 <https://github.com/ros-controls/ros2_control/issues/2521>`_)
+* Fix the CPU affinity of the ros2_control_node (`#2509 <https://github.com/ros-controls/ros2_control/issues/2509>`_) (`#2511 <https://github.com/ros-controls/ros2_control/issues/2511>`_)
+* Contributors: mergify[bot]
+
+4.36.0 (2025-08-26)
+-------------------
+
+4.35.0 (2025-07-31)
+-------------------
+* Fix the prepare_command_mode_switch behaviour when HW is INACTIVE (`#2347 <https://github.com/ros-controls/ros2_control/issues/2347>`_) (`#2418 <https://github.com/ros-controls/ros2_control/issues/2418>`_)
+* Contributors: mergify[bot]
+
+4.34.0 (2025-07-21)
+-------------------
+* Further Struct based Method changes to support propagation in `gz_ros2_control` (backport `#2340 <https://github.com/ros-controls/ros2_control/issues/2340>`_) (`#2407 <https://github.com/ros-controls/ros2_control/issues/2407>`_)
+* Shift to Struct based Method and Constructors, with Executor passed from CM to `on_init()` (`#2323 <https://github.com/ros-controls/ros2_control/issues/2323>`_) (`#2339 <https://github.com/ros-controls/ros2_control/issues/2339>`_)
+* Increase controller period tolerance further (`#2405 <https://github.com/ros-controls/ros2_control/issues/2405>`_) (`#2406 <https://github.com/ros-controls/ros2_control/issues/2406>`_)
+* Fix controller activation crash on macOS (Fixes `#604 <https://github.com/ros-controls/ros2_control/issues/604>`_) (`#2391 <https://github.com/ros-controls/ros2_control/issues/2391>`_) (`#2396 <https://github.com/ros-controls/ros2_control/issues/2396>`_)
+* Increase controller period tolerance in tests (`#2388 <https://github.com/ros-controls/ros2_control/issues/2388>`_) (`#2389 <https://github.com/ros-controls/ros2_control/issues/2389>`_)
+* [spawner] Fix Lock timeout error crashes (`#2386 <https://github.com/ros-controls/ros2_control/issues/2386>`_) (`#2387 <https://github.com/ros-controls/ros2_control/issues/2387>`_)
+* [Spawner] Fix the scope issue of the logger (`#2382 <https://github.com/ros-controls/ros2_control/issues/2382>`_) (`#2383 <https://github.com/ros-controls/ros2_control/issues/2383>`_)
+* Increase tolerance to improve the success rate of the tests (`#2373 <https://github.com/ros-controls/ros2_control/issues/2373>`_) (`#2377 <https://github.com/ros-controls/ros2_control/issues/2377>`_)
+* [Spawner] Change strategy for `--unload-on-kill` option (`#2372 <https://github.com/ros-controls/ros2_control/issues/2372>`_) (`#2376 <https://github.com/ros-controls/ros2_control/issues/2376>`_)
+* Contributors: mergify[bot]
+
+4.33.0 (2025-07-02)
+-------------------
+* Deactivate controllers with command interfaces to hardware on DEACTIVATE (`#2334 <https://github.com/ros-controls/ros2_control/issues/2334>`_) (`#2341 <https://github.com/ros-controls/ros2_control/issues/2341>`_)
+* Contributors: mergify[bot]
+
 4.32.0 (2025-06-06)
 -------------------
 * Move `enforce_command_limits` parameter to GPL parameters (backport `#2305 <https://github.com/ros-controls/ros2_control/issues/2305>`_) (`#2316 <https://github.com/ros-controls/ros2_control/issues/2316>`_)

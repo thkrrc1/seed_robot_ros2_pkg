@@ -20,6 +20,7 @@
 #include <memory>
 #include <vector>
 
+#include "joint_limits/data_structures.hpp"
 #include "joint_limits/joint_limiter_interface.hpp"
 #include "rclcpp/clock.hpp"
 #include "rclcpp/duration.hpp"
@@ -43,7 +44,7 @@ public:
   /** \brief Destructor */
   virtual ~JointSaturationLimiter();
 
-  bool on_init() override { return true; }
+  bool on_init() override;
 
   bool on_configure(const JointLimitsStateDataType & current_joint_states) override
   {
@@ -65,6 +66,7 @@ public:
    * \param[in,out] desired_joint_states joint state that should be adjusted to obey the limits.
    * \param[in] dt time delta to calculate missing integrals and derivation in joint limits.
    * \returns true if limits are enforced, otherwise false.
+   * \throws std::runtime_error if the actual position is out of bounds if commanding position
    */
   bool on_enforce(
     const JointLimitsStateDataType & current_joint_states,
@@ -98,6 +100,15 @@ template <typename JointLimitsStateDataType>
 JointSaturationLimiter<JointLimitsStateDataType>::~JointSaturationLimiter()
 {
 }
+
+template <typename JointLimitsStateDataType>
+bool JointSaturationLimiter<JointLimitsStateDataType>::on_init()
+{
+  return true;
+}
+
+template <>
+bool JointSaturationLimiter<JointControlInterfacesData>::on_init();
 
 }  // namespace joint_limits
 

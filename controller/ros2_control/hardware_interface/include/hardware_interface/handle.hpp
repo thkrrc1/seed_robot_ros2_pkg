@@ -27,7 +27,6 @@
 #include <shared_mutex>
 #include <string>
 #include <utility>
-#include <variant>
 
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/introspection.hpp"
@@ -36,6 +35,7 @@
 
 namespace
 {
+#ifndef _WIN32
 template <typename T>
 std::string get_type_name()
 {
@@ -44,12 +44,18 @@ std::string get_type_name()
     abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, &status), std::free};
   return (status == 0) ? res.get() : typeid(T).name();
 }
+#else
+// not supported on Windows, use typeid directly
+template <typename T>
+std::string get_type_name()
+{
+  return typeid(T).name();
+}
+#endif
 }  // namespace
 
 namespace hardware_interface
 {
-
-using HANDLE_DATATYPE = std::variant<std::monostate, double, bool>;
 
 /// A handle used to get and set a value on a given interface.
 class Handle
@@ -72,7 +78,6 @@ public:
     handle_name_(prefix_name_ + "/" + interface_name_),
     data_type_(data_type)
   {
-    // As soon as multiple datatypes are used in HANDLE_DATATYPE
     // we need to initialize according the type passed in interface description
     if (data_type_ == hardware_interface::HandleDataType::DOUBLE)
     {
@@ -91,17 +96,145 @@ public:
             initial_value, handle_name_, data_type_.to_string()));
       }
     }
+    else if (data_type_ == hardware_interface::HandleDataType::FLOAT32)
+    {
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty()
+                   ? std::numeric_limits<float>::quiet_NaN()
+                   : static_cast<float>(hardware_interface::stof(initial_value));
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
+    }
     else if (data_type_ == hardware_interface::HandleDataType::BOOL)
     {
-      value_ptr_ = nullptr;
-      value_ = initial_value.empty() ? false : hardware_interface::parse_bool(initial_value);
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty() ? false : hardware_interface::parse_bool(initial_value);
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
+    }
+    else if (data_type_ == hardware_interface::HandleDataType::UINT8)
+    {
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty()
+                   ? static_cast<uint8_t>(std::numeric_limits<uint8_t>::max())
+                   : static_cast<uint8_t>(hardware_interface::stoui8(initial_value));
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
+    }
+    else if (data_type_ == hardware_interface::HandleDataType::INT8)
+    {
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty()
+                   ? static_cast<int8_t>(std::numeric_limits<int8_t>::max())
+                   : static_cast<int8_t>(hardware_interface::stoi8(initial_value));
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
+    }
+    else if (data_type_ == hardware_interface::HandleDataType::UINT16)
+    {
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty()
+                   ? static_cast<uint16_t>(std::numeric_limits<uint16_t>::max())
+                   : static_cast<uint16_t>(hardware_interface::stoui16(initial_value));
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
+    }
+    else if (data_type_ == hardware_interface::HandleDataType::INT16)
+    {
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty()
+                   ? static_cast<int16_t>(std::numeric_limits<int16_t>::max())
+                   : static_cast<int16_t>(hardware_interface::stoi16(initial_value));
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
+    }
+    else if (data_type_ == hardware_interface::HandleDataType::UINT32)
+    {
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty()
+                   ? static_cast<uint32_t>(std::numeric_limits<uint32_t>::max())
+                   : static_cast<uint32_t>(hardware_interface::stoui32(initial_value));
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
+    }
+    else if (data_type_ == hardware_interface::HandleDataType::INT32)
+    {
+      try
+      {
+        value_ptr_ = nullptr;
+        value_ = initial_value.empty()
+                   ? static_cast<int32_t>(std::numeric_limits<int32_t>::max())
+                   : static_cast<int32_t>(hardware_interface::stoi32(initial_value));
+      }
+      catch (const std::invalid_argument & err)
+      {
+        throw std::invalid_argument(
+          fmt::format(
+            FMT_COMPILE("Invalid initial value: '{}' parsed for interface: '{}' with type: '{}'"),
+            initial_value, handle_name_, data_type_.to_string()));
+      }
     }
     else
     {
       throw std::runtime_error(
         fmt::format(
-          FMT_COMPILE(
-            "Invalid data type : '{}' for interface : {}. Supported types are double and bool."),
+          FMT_COMPILE("Invalid data type: '{}' for interface: {}. Check supported types."),
           data_type, handle_name_));
     }
   }
@@ -220,9 +353,31 @@ public:
     // TODO(saikishor) return value_ if old functionality is removed
     if constexpr (std::is_same_v<T, double>)
     {
-      // If the template is of type double, check if the value_ptr_ is not nullptr
-      THROW_ON_NULLPTR(value_ptr_);
-      return *value_ptr_;
+      switch (data_type_)
+      {
+        case HandleDataType::DOUBLE:
+          THROW_ON_NULLPTR(value_ptr_);
+          return *value_ptr_;
+        case HandleDataType::BOOL:     // fallthrough
+        case HandleDataType::FLOAT32:  // fallthrough
+        case HandleDataType::UINT8:    // fallthrough
+        case HandleDataType::INT8:     // fallthrough
+        case HandleDataType::UINT16:   // fallthrough
+        case HandleDataType::INT16:    // fallthrough
+        case HandleDataType::UINT32:   // fallthrough
+        case HandleDataType::INT32:    // fallthrough
+          throw std::runtime_error(
+            fmt::format(
+              FMT_COMPILE(
+                "Data type: '{}' will not be casted to double for interface: {}. Use "
+                "get_optional<{}>() instead."),
+              data_type_.to_string(), get_name(), data_type_.to_string()));
+        default:
+          throw std::runtime_error(
+            fmt::format(
+              FMT_COMPILE("Data type: '{}' cannot be casted to double for interface: {}"),
+              data_type_.to_string(), get_name()));
+      }
     }
     try
     {
@@ -284,6 +439,61 @@ public:
     }
     return true;
     // END
+  }
+
+  /**
+   * @brief Get the value of the handle.
+   * @tparam T The type of the value to be retrieved.
+   * @param value The variable to store the retrieved value.
+   * @param wait_for_lock If true, the method will wait for the lock to be available, else it will
+   * try to get the lock without blocking.
+   * @return true if the value is retrieved successfully, false otherwise.
+   *
+   * @note The method is thread-safe.
+   * @note This method is real-time safe or non-blocking, only if wait_for_lock is set to false.
+   * @note Ideal for the data types that are large in size to avoid copy during return.
+   */
+  template <
+    typename T, typename = std::enable_if_t<
+                  !std::is_same_v<std::decay_t<T>, std::shared_lock<std::shared_mutex>>>>
+  [[nodiscard]] bool get_value(T & value, bool wait_for_lock) const
+  {
+    if (wait_for_lock)
+    {
+      std::shared_lock<std::shared_mutex> lock(handle_mutex_);
+      return get_value(lock, value);
+    }
+    else
+    {
+      std::shared_lock<std::shared_mutex> lock(handle_mutex_, std::try_to_lock);
+      return get_value(lock, value);
+    }
+  }
+
+  /**
+   * @brief Set the value of the handle.
+   * @tparam T The type of the value to be set.
+   * @param value The value to be set.
+   * @param wait_for_lock If true, the method will wait for the lock to be available, else it will
+   * try to get the lock without blocking.
+   * @return true if the value is set successfully, false otherwise.
+   *
+   * @note The method is thread-safe.
+   * @note This method is real-time safe or non-blocking, only if wait_for_lock is set to false.
+   */
+  template <typename T>
+  [[nodiscard]] bool set_value(const T & value, bool wait_for_lock)
+  {
+    if (wait_for_lock)
+    {
+      std::unique_lock<std::shared_mutex> lock(handle_mutex_);
+      return set_value(lock, value);
+    }
+    else
+    {
+      std::unique_lock<std::shared_mutex> lock(handle_mutex_, std::try_to_lock);
+      return set_value(lock, value);
+    }
   }
 
   /**
@@ -350,6 +560,76 @@ public:
 
   HandleDataType get_data_type() const { return data_type_; }
 
+  /// Returns true if the handle data type can be casted to double.
+  bool is_castable_to_double() const { return data_type_.is_castable_to_double(); }
+
+  bool is_valid() const
+  {
+    return (value_ptr_ != nullptr) || !std::holds_alternative<std::monostate>(value_);
+  }
+
+protected:
+  /**
+   * @brief Get the value of the handle.
+   * @tparam T The type of the value to be retrieved.
+   * @param lock The lock to access the value.
+   * @param value The variable to store the retrieved value.
+   * @return true if the value is retrieved successfully, false otherwise.
+   * @note The method is thread-safe and non-blocking.
+   * @note Ideal for the data types that are large in size to avoid copy during return.
+   */
+  template <typename T>
+  [[nodiscard]] bool get_value(std::shared_lock<std::shared_mutex> & lock, T & value) const
+  {
+    if (!lock.owns_lock())
+    {
+      return false;
+    }
+    // BEGIN (Handle export change): for backward compatibility
+    // TODO(saikishor) get value_ if old functionality is removed
+    if constexpr (std::is_same_v<T, double>)
+    {
+      switch (data_type_)
+      {
+        case HandleDataType::DOUBLE:
+          THROW_ON_NULLPTR(value_ptr_);
+          value = *value_ptr_;
+          return true;
+        case HandleDataType::BOOL:     // fallthrough
+        case HandleDataType::FLOAT32:  // fallthrough
+        case HandleDataType::UINT8:    // fallthrough
+        case HandleDataType::INT8:     // fallthrough
+        case HandleDataType::UINT16:   // fallthrough
+        case HandleDataType::INT16:    // fallthrough
+        case HandleDataType::UINT32:   // fallthrough
+        case HandleDataType::INT32:    // fallthrough
+          throw std::runtime_error(
+            fmt::format(
+              FMT_COMPILE(
+                "Data type: '{}' will not be casted to double for interface: {}. Use "
+                "get_optional<{}>() instead."),
+              data_type_.to_string(), get_name(), data_type_.to_string()));
+        default:
+          throw std::runtime_error(
+            fmt::format(
+              FMT_COMPILE("Data type: '{}' cannot be casted to double for interface: {}"),
+              data_type_.to_string(), get_name()));
+      }
+    }
+    try
+    {
+      value = std::get<T>(value_);
+      return true;
+    }
+    catch (const std::bad_variant_access & err)
+    {
+      throw std::runtime_error(
+        fmt::format(
+          FMT_COMPILE("Invalid data type: '{}' access for interface: {} expected: '{}'"),
+          get_type_name<T>(), get_name(), data_type_.to_string()));
+    }
+  }
+
 private:
   void copy(const Handle & other) noexcept
   {
@@ -358,6 +638,7 @@ private:
     interface_name_ = other.interface_name_;
     handle_name_ = other.handle_name_;
     value_ = other.value_;
+    data_type_ = other.data_type_;
     if (std::holds_alternative<std::monostate>(value_))
     {
       value_ptr_ = other.value_ptr_;
@@ -375,10 +656,12 @@ private:
     std::swap(first.interface_name_, second.interface_name_);
     std::swap(first.handle_name_, second.handle_name_);
     std::swap(first.value_, second.value_);
+    std::swap(first.data_type_, second.data_type_);
     std::swap(first.value_ptr_, second.value_ptr_);
   }
 
 protected:
+  /// @note The methods copy and swap need to be updated, if new members are added.
   std::string prefix_name_;
   std::string interface_name_;
   std::string handle_name_;
@@ -386,7 +669,7 @@ protected:
   HandleDataType data_type_ = HandleDataType::DOUBLE;
   // BEGIN (Handle export change): for backward compatibility
   // TODO(Manuel) redeclare as HANDLE_DATATYPE * value_ptr_ if old functionality is removed
-  double * value_ptr_;
+  double * value_ptr_ = nullptr;
   // END
   mutable std::shared_mutex handle_mutex_;
 };
@@ -401,17 +684,35 @@ public:
 
   void registerIntrospection() const
   {
-    if (value_ptr_ || std::holds_alternative<double>(value_))
+    if (!is_valid())
+    {
+      RCLCPP_WARN(
+        rclcpp::get_logger(get_name()),
+        "Cannot register state introspection for state interface: %s without a valid value "
+        "pointer or initialized value.",
+        get_name().c_str());
+      return;
+    }
+    if (value_ptr_ || data_type_.is_castable_to_double())
     {
       std::function<double()> f = [this]()
-      { return value_ptr_ ? *value_ptr_ : std::get<double>(value_); };
+      {
+        if (value_ptr_)
+        {
+          return *value_ptr_;
+        }
+        else
+        {
+          return data_type_.cast_to_double(value_);
+        }
+      };
       DEFAULT_REGISTER_ROS2_CONTROL_INTROSPECTION("state_interface." + get_name(), f);
     }
   }
 
   void unregisterIntrospection() const
   {
-    if (value_ptr_ || std::holds_alternative<double>(value_))
+    if (is_valid() && (value_ptr_ || data_type_.is_castable_to_double()))
     {
       DEFAULT_UNREGISTER_ROS2_CONTROL_INTROSPECTION("state_interface." + get_name());
     }
@@ -480,10 +781,28 @@ public:
 
   void registerIntrospection() const
   {
-    if (value_ptr_ || std::holds_alternative<double>(value_))
+    if (!is_valid())
+    {
+      RCLCPP_WARN(
+        rclcpp::get_logger(get_name()),
+        "Cannot register command introspection for command interface: %s without a valid value "
+        "pointer or initialized value.",
+        get_name().c_str());
+      return;
+    }
+    if (value_ptr_ || data_type_.is_castable_to_double())
     {
       std::function<double()> f = [this]()
-      { return value_ptr_ ? *value_ptr_ : std::get<double>(value_); };
+      {
+        if (value_ptr_)
+        {
+          return *value_ptr_;
+        }
+        else
+        {
+          return data_type_.cast_to_double(value_);
+        }
+      };
       DEFAULT_REGISTER_ROS2_CONTROL_INTROSPECTION("command_interface." + get_name(), f);
       DEFAULT_REGISTER_ROS2_CONTROL_INTROSPECTION(
         "command_interface." + get_name() + ".is_limited", &is_command_limited_);
@@ -492,7 +811,7 @@ public:
 
   void unregisterIntrospection() const
   {
-    if (value_ptr_ || std::holds_alternative<double>(value_))
+    if (is_valid() && (value_ptr_ || data_type_.is_castable_to_double()))
     {
       DEFAULT_UNREGISTER_ROS2_CONTROL_INTROSPECTION("command_interface." + get_name());
       DEFAULT_UNREGISTER_ROS2_CONTROL_INTROSPECTION(

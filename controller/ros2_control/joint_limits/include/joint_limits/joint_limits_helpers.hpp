@@ -33,6 +33,14 @@ constexpr double OUT_OF_BOUNDS_EXCEPTION_TOLERANCE = 0.0087;
 }  // namespace internal
 
 /**
+ * @brief Updates the previous command with the desired command.
+ * @param prev_command The previous command to update.
+ * @param desired The desired command which is limited.
+ */
+void update_prev_command(
+  const JointControlInterfacesData & desired, JointControlInterfacesData & prev_command);
+
+/**
  * @brief Checks if a value is limited by the given limits.
  * @param value The value to check.
  * @param min The minimum limit.
@@ -50,6 +58,7 @@ bool is_limited(double value, double min, double max);
  * @param prev_command_pos The previous commanded position of the joint.
  * @param dt The time step.
  * @return The position limits, first is the lower limit and second is the upper limit.
+ * @throws std::runtime_error if the actual position is out of bounds.
  */
 PositionLimits compute_position_limits(
   const std::string & joint_name, const joint_limits::JointLimits & limits,

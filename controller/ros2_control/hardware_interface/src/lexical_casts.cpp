@@ -14,6 +14,9 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
+#include <cmath>
+#include <cstdint>
 #include <locale>
 #include <optional>
 #include <stdexcept>
@@ -26,6 +29,39 @@ namespace hardware_interface
 {
 namespace impl
 {
+template <typename FloatingPointType>
+std::optional<FloatingPointType> parse_floating_point_with_from_chars(const std::string & s)
+{
+  const char * begin = s.data();
+  const char * end = s.data() + s.size();
+
+  if (begin == end)
+  {
+    return std::nullopt;
+  }
+
+  // std::from_chars for floating-point does not accept a leading '+' sign.
+  if (*begin == '+')
+  {
+    ++begin;
+    if (begin == end)
+    {
+      return std::nullopt;
+    }
+  }
+
+  FloatingPointType result_value;
+  const auto parse_result = std::from_chars(begin, end, result_value);
+  if (
+    parse_result.ec == std::errc() && parse_result.ptr == end &&
+    std::isfinite(static_cast<double>(result_value)))
+  {
+    return result_value;
+  }
+
+  return std::nullopt;
+}
+
 std::optional<double> stod(const std::string & s)
 {
 #if __cplusplus < 202002L
@@ -35,22 +71,37 @@ std::optional<double> stod(const std::string & s)
   stream.imbue(std::locale::classic());
   double result;
   stream >> result;
-  if (stream.fail() || !stream.eof())
+  if (stream.fail() || !stream.eof() || !std::isfinite(result))
   {
     return std::nullopt;
   }
   return result;
 #else
   // Impl with std::from_chars
-  double result_value;
-  const auto parse_result = std::from_chars(s.data(), s.data() + s.size(), result_value);
-  if (parse_result.ec == std::errc())
-  {
-    return result_value;
-  }
-  return std::nullopt;
+  return parse_floating_point_with_from_chars<double>(s);
 #endif
 }
+
+std::optional<float> stof(const std::string & s)
+{
+#if __cplusplus < 202002L
+  // convert from string using no locale
+  // Impl with std::istringstream
+  std::istringstream stream(s);
+  stream.imbue(std::locale::classic());
+  float result;
+  stream >> result;
+  if (stream.fail() || !stream.eof() || !std::isfinite(result))
+  {
+    return std::nullopt;
+  }
+  return result;
+#else
+  // Impl with std::from_chars
+  return parse_floating_point_with_from_chars<float>(s);
+#endif
+}
+
 }  // namespace impl
 
 double stod(const std::string & s)
@@ -62,12 +113,28 @@ double stod(const std::string & s)
   throw std::invalid_argument("Failed converting string to real number");
 }
 
+float stof(const std::string & s)
+{
+  if (const auto result = impl::stof(s))
+  {
+    return *result;
+  }
+  throw std::invalid_argument("Failed converting string to float number");
+}
+
+std::string to_lower_case(const std::string & string)
+{
+  std::string lower_case_string = string;
+  std::transform(
+    lower_case_string.begin(), lower_case_string.end(), lower_case_string.begin(),
+    [](unsigned char c) { return std::tolower(c); });
+  return lower_case_string;
+}
+
 bool parse_bool(const std::string & bool_string)
 {
   // Copy input to temp and make lowercase
-  std::string temp = bool_string;
-  std::transform(
-    temp.begin(), temp.end(), temp.begin(), [](unsigned char c) { return std::tolower(c); });
+  std::string temp = to_lower_case(bool_string);
 
   if (temp == "true")
   {

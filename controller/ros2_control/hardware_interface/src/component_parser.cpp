@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "rclcpp/version.h"
+// cppcheck-suppress syntaxError
 #if RCLCPP_VERSION_GTE(29, 0, 0)
 #include "urdf/model.hpp"
 #else
@@ -31,6 +32,7 @@
 
 #include "hardware_interface/component_parser.hpp"
 #include "hardware_interface/hardware_info.hpp"
+#include "hardware_interface/helpers.hpp"
 #include "hardware_interface/lexical_casts.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "joint_limits/joint_limits_urdf.hpp"
@@ -55,6 +57,8 @@ constexpr const auto kStateInterfaceTag = "state_interface";
 constexpr const auto kMinTag = "min";
 constexpr const auto kMaxTag = "max";
 constexpr const auto kLimitsTag = "limits";
+constexpr const auto kPropertiesTag = "properties";
+constexpr const auto kAsyncTag = "async";
 constexpr const auto kEnableAttribute = "enable";
 constexpr const auto kInitialValueTag = "initial_value";
 constexpr const auto kMimicAttribute = "mimic";
@@ -68,6 +72,9 @@ constexpr const auto kOffsetAttribute = "offset";
 constexpr const auto kReadWriteRateAttribute = "rw_rate";
 constexpr const auto kIsAsyncAttribute = "is_async";
 constexpr const auto kThreadPriorityAttribute = "thread_priority";
+constexpr const auto kAffinityCoresAttribute = "affinity";
+constexpr const auto kSchedulingPolicyAttribute = "scheduling_policy";
+constexpr const auto kPrintWarningsAttribute = "print_warnings";
 
 }  // namespace
 
@@ -79,7 +86,7 @@ namespace detail
 /**
  * \param[in] element_it XMLElement iterator to search for the text.
  * \param[in] tag_name parent tag name where text is searched for (used for error output)
- * \return text of for the tag
+ * \return text of for the tag stripping leading and trailing whitespace
  * \throws std::runtime_error if text is not found
  */
 std::string get_text_for_element(
@@ -91,7 +98,7 @@ std::string get_text_for_element(
     std::cerr << "text not specified in the " << tag_name << " tag" << std::endl;
     return "";
   }
-  return get_text_output;
+  return ros2_control::strip(get_text_output);
 }
 
 /// Gets value of the attribute on an XMLelement.
@@ -101,7 +108,7 @@ std::string get_text_for_element(
  * \param[in] element_it XMLElement iterator to search for the attribute
  * \param[in] attribute_name attribute name to search for and return value
  * \param[in] tag_name parent tag name where attribute is searched for (used for error output)
- * \return attribute value
+ * \return attribute value stripping leading and trailing whitespace
  * \throws std::runtime_error if attribute is not found
  */
 std::string get_attribute_value(
@@ -111,10 +118,18 @@ std::string get_attribute_value(
   attr = element_it->FindAttribute(attribute_name);
   if (!attr)
   {
+    const char * name = element_it->Attribute(kNameAttribute);
+    if (name && std::strlen(name) > 0)
+    {
+      throw std::runtime_error(
+        fmt::format(
+          FMT_COMPILE("no attribute '{}' in '{}' tag with name '{}'"), attribute_name, tag_name,
+          name));
+    }
     throw std::runtime_error(
-      fmt::format(FMT_COMPILE("no attribute {} in {} tag"), attribute_name, tag_name));
+      fmt::format(FMT_COMPILE("no attribute '{}' in '{}' tag"), attribute_name, tag_name));
   }
-  return element_it->Attribute(attribute_name);
+  return ros2_control::strip(element_it->Attribute(attribute_name));
 }
 
 /// Gets value of the attribute on an XMLelement.
@@ -124,7 +139,7 @@ std::string get_attribute_value(
  * \param[in] element_it XMLElement iterator to search for the attribute
  * \param[in] attribute_name attribute name to search for and return value
  * \param[in] tag_name parent tag name where attribute is searched for (used for error output)
- * \return attribute value
+ * \return attribute value stripping leading and trailing whitespace
  * \throws std::runtime_error if attribute is not found
  */
 std::string get_attribute_value(
@@ -156,7 +171,7 @@ double get_parameter_value_or(
         const auto tag_text = params_it->GetText();
         if (tag_text)
         {
-          return hardware_interface::stod(tag_text);
+          return hardware_interface::stod(ros2_control::strip(tag_text));
         }
       }
     }
@@ -191,7 +206,7 @@ std::size_t parse_size_attribute(const tinyxml2::XMLElement * elem)
 
   std::size_t size;
   // Regex used to check for non-zero positive int
-  std::string s = attr->Value();
+  std::string s = ros2_control::strip(attr->Value());
   std::regex int_re("[1-9][0-9]*");
   if (std::regex_match(s, int_re))
   {
@@ -228,7 +243,7 @@ std::string parse_data_type_attribute(const tinyxml2::XMLElement * elem)
   }
   else
   {
-    data_type = attr->Value();
+    data_type = ros2_control::strip(attr->Value());
   }
 
   return data_type;
@@ -247,7 +262,7 @@ unsigned int parse_rw_rate_attribute(const tinyxml2::XMLElement * elem)
   const tinyxml2::XMLAttribute * attr = elem->FindAttribute(kReadWriteRateAttribute);
   try
   {
-    const auto rw_rate = attr ? std::stoi(attr->Value()) : 0;
+    const auto rw_rate = attr ? std::stoi(ros2_control::strip(attr->Value())) : 0;
     if (rw_rate < 0)
     {
       throw std::runtime_error(
@@ -265,7 +280,7 @@ unsigned int parse_rw_rate_attribute(const tinyxml2::XMLElement * elem)
         FMT_COMPILE(
           "Could not parse rw_rate tag in \"{}\". Invalid value: \"{}\", expected a positive "
           "integer."),
-        elem->Name(), attr->Value()));
+        elem->Name(), ros2_control::strip(attr->Value())));
   }
   catch (const std::out_of_range & e)
   {
@@ -274,7 +289,7 @@ unsigned int parse_rw_rate_attribute(const tinyxml2::XMLElement * elem)
         FMT_COMPILE(
           "Could not parse rw_rate tag in \"{}\". Out of range value: \"{}\", expected a positive "
           "valid integer."),
-        elem->Name(), attr->Value()));
+        elem->Name(), ros2_control::strip(attr->Value())));
   }
 }
 
@@ -289,7 +304,7 @@ unsigned int parse_rw_rate_attribute(const tinyxml2::XMLElement * elem)
 bool parse_is_async_attribute(const tinyxml2::XMLElement * elem)
 {
   const tinyxml2::XMLAttribute * attr = elem->FindAttribute(kIsAsyncAttribute);
-  return attr ? parse_bool(attr->Value()) : false;
+  return attr ? parse_bool(ros2_control::strip(attr->Value())) : false;
 }
 
 /// Parse thread_priority attribute
@@ -307,7 +322,7 @@ int parse_thread_priority_attribute(const tinyxml2::XMLElement * elem)
   {
     return 50;
   }
-  std::string s = attr->Value();
+  std::string s = ros2_control::strip(attr->Value());
   std::regex int_re("[1-9][0-9]*");
   if (std::regex_match(s, int_re))
   {
@@ -331,7 +346,7 @@ int parse_thread_priority_attribute(const tinyxml2::XMLElement * elem)
  * \throws std::runtime_error if a component attribute or tag is not found
  */
 std::unordered_map<std::string, std::string> parse_parameters_from_xml(
-  const tinyxml2::XMLElement * params_it)
+  const tinyxml2::XMLElement * params_it, const std::string & context_name)
 {
   std::unordered_map<std::string, std::string> parameters;
   const tinyxml2::XMLAttribute * attr;
@@ -342,10 +357,14 @@ std::unordered_map<std::string, std::string> parse_parameters_from_xml(
     attr = params_it->FindAttribute(kNameAttribute);
     if (!attr)
     {
-      throw std::runtime_error("no parameter name attribute set in param tag");
+      throw std::runtime_error(
+        fmt::format(
+          FMT_COMPILE("no parameter name attribute set in param tag{}"),
+          context_name.empty() ? "" : " for '" + context_name + "'"));
     }
-    const std::string parameter_name = params_it->Attribute(kNameAttribute);
-    const std::string parameter_value = get_text_for_element(params_it, parameter_name);
+    const std::string parameter_name = ros2_control::strip(params_it->Attribute(kNameAttribute));
+    const std::string parameter_value =
+      ros2_control::strip(get_text_for_element(params_it, parameter_name));
     parameters[parameter_name] = parameter_value;
 
     params_it = params_it->NextSiblingElement(kParamTag);
@@ -361,7 +380,7 @@ std::unordered_map<std::string, std::string> parse_parameters_from_xml(
  * \throws std::runtime_error if the interfaceType text not set in a tag
  */
 hardware_interface::InterfaceInfo parse_interfaces_from_xml(
-  const tinyxml2::XMLElement * interfaces_it)
+  const tinyxml2::XMLElement * interfaces_it, const std::string & context_name)
 {
   hardware_interface::InterfaceInfo interface;
 
@@ -371,7 +390,7 @@ hardware_interface::InterfaceInfo parse_interfaces_from_xml(
 
   // Optional min/max attributes
   std::unordered_map<std::string, std::string> interface_params =
-    parse_parameters_from_xml(interfaces_it->FirstChildElement(kParamTag));
+    parse_parameters_from_xml(interfaces_it->FirstChildElement(kParamTag), context_name);
   auto interface_param = interface_params.find(kMinTag);
   if (interface_param != interface_params.end())
   {
@@ -407,7 +426,7 @@ hardware_interface::InterfaceInfo parse_interfaces_from_xml(
   const auto * params_it = interfaces_it->FirstChildElement(kParamTag);
   if (params_it)
   {
-    interface.parameters = parse_parameters_from_xml(params_it);
+    interface.parameters = parse_parameters_from_xml(params_it, context_name);
   }
 
   interface.data_type = parse_data_type_attribute(interfaces_it);
@@ -447,19 +466,20 @@ ComponentInfo parse_component_from_xml(const tinyxml2::XMLElement * component_it
   }
 
   // Option enable or disable the interface limits, by default they are enabled
-  bool enable_limits = true;
+  component.enable_limits = true;
   const auto * limits_it = component_it->FirstChildElement(kLimitsTag);
   if (limits_it)
   {
-    enable_limits = parse_bool(get_attribute_value(limits_it, kEnableAttribute, limits_it->Name()));
+    component.enable_limits =
+      parse_bool(get_attribute_value(limits_it, kEnableAttribute, limits_it->Name()));
   }
 
   // Parse all command interfaces
   const auto * command_interfaces_it = component_it->FirstChildElement(kCommandInterfaceTag);
   while (command_interfaces_it)
   {
-    InterfaceInfo cmd_info = parse_interfaces_from_xml(command_interfaces_it);
-    cmd_info.enable_limits &= enable_limits;
+    InterfaceInfo cmd_info = parse_interfaces_from_xml(command_interfaces_it, component.name);
+    cmd_info.enable_limits &= component.enable_limits;
     component.command_interfaces.push_back(cmd_info);
     command_interfaces_it = command_interfaces_it->NextSiblingElement(kCommandInterfaceTag);
   }
@@ -468,8 +488,8 @@ ComponentInfo parse_component_from_xml(const tinyxml2::XMLElement * component_it
   const auto * state_interfaces_it = component_it->FirstChildElement(kStateInterfaceTag);
   while (state_interfaces_it)
   {
-    InterfaceInfo state_info = parse_interfaces_from_xml(state_interfaces_it);
-    state_info.enable_limits &= enable_limits;
+    InterfaceInfo state_info = parse_interfaces_from_xml(state_interfaces_it, component.name);
+    state_info.enable_limits &= component.enable_limits;
     component.state_interfaces.push_back(state_info);
     state_interfaces_it = state_interfaces_it->NextSiblingElement(kStateInterfaceTag);
   }
@@ -478,7 +498,7 @@ ComponentInfo parse_component_from_xml(const tinyxml2::XMLElement * component_it
   const auto * params_it = component_it->FirstChildElement(kParamTag);
   if (params_it)
   {
-    component.parameters = parse_parameters_from_xml(params_it);
+    component.parameters = parse_parameters_from_xml(params_it, component.name);
   }
 
   return component;
@@ -505,7 +525,8 @@ ComponentInfo parse_complex_component_from_xml(const tinyxml2::XMLElement * comp
   const auto * command_interfaces_it = component_it->FirstChildElement(kCommandInterfaceTag);
   while (command_interfaces_it)
   {
-    component.command_interfaces.push_back(parse_interfaces_from_xml(command_interfaces_it));
+    component.command_interfaces.push_back(
+      parse_interfaces_from_xml(command_interfaces_it, component.name));
     command_interfaces_it = command_interfaces_it->NextSiblingElement(kCommandInterfaceTag);
   }
 
@@ -513,7 +534,8 @@ ComponentInfo parse_complex_component_from_xml(const tinyxml2::XMLElement * comp
   const auto * state_interfaces_it = component_it->FirstChildElement(kStateInterfaceTag);
   while (state_interfaces_it)
   {
-    component.state_interfaces.push_back(parse_interfaces_from_xml(state_interfaces_it));
+    component.state_interfaces.push_back(
+      parse_interfaces_from_xml(state_interfaces_it, component.name));
     state_interfaces_it = state_interfaces_it->NextSiblingElement(kStateInterfaceTag);
   }
 
@@ -521,7 +543,7 @@ ComponentInfo parse_complex_component_from_xml(const tinyxml2::XMLElement * comp
   const auto * params_it = component_it->FirstChildElement(kParamTag);
   if (params_it)
   {
-    component.parameters = parse_parameters_from_xml(params_it);
+    component.parameters = parse_parameters_from_xml(params_it, component.name);
   }
 
   return component;
@@ -566,7 +588,10 @@ TransmissionInfo parse_transmission_from_xml(const tinyxml2::XMLElement * transm
   const auto * type_it = transmission_it->FirstChildElement(kPluginNameTag);
   if (!type_it)
   {
-    throw std::runtime_error("Missing <plugin> tag of <transmission> element in your URDF.");
+    throw std::runtime_error(
+      fmt::format(
+        FMT_COMPILE("Missing <plugin> tag of <transmission> element for '{}' in your URDF."),
+        transmission.name));
   }
   transmission.type = get_text_for_element(type_it, kPluginNameTag);
 
@@ -590,7 +615,7 @@ TransmissionInfo parse_transmission_from_xml(const tinyxml2::XMLElement * transm
   const auto * params_it = transmission_it->FirstChildElement(kParamTag);
   if (params_it)
   {
-    transmission.parameters = parse_parameters_from_xml(params_it);
+    transmission.parameters = parse_parameters_from_xml(params_it, transmission.name);
   }
 
   return transmission;
@@ -672,6 +697,7 @@ HardwareInfo parse_resource_from_xml(
   hardware.is_async = parse_is_async_attribute(ros2_control_it);
   hardware.thread_priority = hardware.is_async ? parse_thread_priority_attribute(ros2_control_it)
                                                : std::numeric_limits<int>::max();
+  hardware.async_params.thread_priority = hardware.thread_priority;
 
   // Parse everything under ros2_control tag
   hardware.hardware_plugin_name = "";
@@ -683,7 +709,10 @@ HardwareInfo parse_resource_from_xml(
       const auto * type_it = ros2_control_child_it->FirstChildElement(kPluginNameTag);
       if (!type_it)
       {
-        throw std::runtime_error("Missing <plugin> tag of <hardware> element in your URDF.");
+        throw std::runtime_error(
+          fmt::format(
+            FMT_COMPILE("Missing <plugin> tag of <hardware> element for '{}' in your URDF."),
+            hardware.name));
       }
       hardware.hardware_plugin_name =
         get_text_for_element(type_it, std::string("hardware ") + kPluginNameTag);
@@ -695,7 +724,43 @@ HardwareInfo parse_resource_from_xml(
       const auto * params_it = ros2_control_child_it->FirstChildElement(kParamTag);
       if (params_it)
       {
-        hardware.hardware_parameters = parse_parameters_from_xml(params_it);
+        hardware.hardware_parameters = parse_parameters_from_xml(params_it, hardware.name);
+      }
+    }
+    else if (std::string(kPropertiesTag) == ros2_control_child_it->Name())
+    {
+      const auto * async_it = ros2_control_child_it->FirstChildElement(kAsyncTag);
+      if (async_it)
+      {
+        // Async properties are defined
+        try
+        {
+          if (async_it->FindAttribute(kAffinityCoresAttribute))
+          {
+            hardware.async_params.cpu_affinity_cores =
+              parse_array<int>(get_attribute_value(async_it, kAffinityCoresAttribute, kAsyncTag));
+          }
+          if (async_it->FindAttribute(kSchedulingPolicyAttribute))
+          {
+            hardware.async_params.scheduling_policy =
+              to_lower_case(get_attribute_value(async_it, kSchedulingPolicyAttribute, kAsyncTag));
+          }
+          if (async_it->FindAttribute(kThreadPriorityAttribute))
+          {
+            hardware.async_params.thread_priority = parse_thread_priority_attribute(async_it);
+            hardware.thread_priority = hardware.async_params.thread_priority;
+          }
+          if (async_it->FindAttribute(kPrintWarningsAttribute))
+          {
+            hardware.async_params.print_warnings =
+              parse_bool(get_attribute_value(async_it, kPrintWarningsAttribute, kAsyncTag));
+          }
+        }
+        catch (const std::exception & e)
+        {
+          throw std::runtime_error(
+            fmt::format(FMT_COMPILE("Error parsing {} tag: {}"), kAsyncTag, e.what()));
+        }
       }
     }
     else if (std::string(kJointTag) == ros2_control_child_it->Name())
@@ -834,13 +899,18 @@ void set_custom_interface_values(const InterfaceInfo & itr, joint_limits::JointL
 /**
  * @brief Retrieve the limits from ros2_control command interface tags and override URDF limits if
  * restrictive
- * @param interfaces The interfaces to retrieve the limits from.
+ * @param joint The joint component info containing interfaces and joint-level enable_limits.
  * @param limits The joint limits to be set.
  */
-void update_interface_limits(
-  const std::vector<InterfaceInfo> & interfaces, joint_limits::JointLimits & limits)
+void update_interface_limits(const ComponentInfo & joint, joint_limits::JointLimits & limits)
 {
-  for (auto & itr : interfaces)
+  // If limits are disabled at the joint level, disable all limit flags
+  if (!joint.enable_limits)
+  {
+    limits.disable_all_limits();
+    return;
+  }
+  for (auto & itr : joint.command_interfaces)
   {
     if (itr.name == hardware_interface::HW_IF_POSITION)
     {
@@ -937,7 +1007,8 @@ std::vector<HardwareInfo> parse_control_resources_from_urdf(const std::string & 
 
   if (!ros2_control_it)
   {
-    throw std::runtime_error(fmt::format(FMT_COMPILE("no {} tag"), kROS2ControlTag));
+    throw std::runtime_error(
+      fmt::format(FMT_COMPILE("no '{}' tag found in the URDF"), kROS2ControlTag));
   }
 
   std::vector<HardwareInfo> hardware_info;
@@ -1013,7 +1084,7 @@ std::vector<HardwareInfo> parse_control_resources_from_urdf(const std::string & 
       joint_limits::JointLimits limits;
       getJointLimits(urdf_joint, limits);
       // Take the most restricted one. Also valid for continuous-joint type only
-      detail::update_interface_limits(joint.command_interfaces, limits);
+      detail::update_interface_limits(joint, limits);
       hw_info.limits[joint.name] = limits;
       joint_limits::SoftJointLimits soft_limits;
       if (getSoftJointLimits(urdf_joint, soft_limits))

@@ -9,14 +9,15 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
   controller_interface
   controller_manager_msgs
   diagnostic_updater
+  fmt
+  generate_parameter_library
   hardware_interface
+  libstatistics_collector
+  lifecycle_msgs
   pluginlib
   rclcpp
   realtime_tools
   std_msgs
-  libstatistics_collector
-  generate_parameter_library
-  fmt
 )
 
 find_package(ament_cmake REQUIRED)
@@ -139,6 +140,18 @@ if(BUILD_TESTING)
     ros2_control_test_assets::ros2_control_test_assets
   )
 
+  ament_add_gmock(test_cleanup_controller
+    test/test_cleanup_controller.cpp
+    APPEND_ENV AMENT_PREFIX_PATH=${ament_index_build_path}_$<CONFIG>
+  )
+  target_link_libraries(test_cleanup_controller
+    controller_manager
+    test_controller
+    test_controller_failed_init
+    test_chainable_controller
+    ros2_control_test_assets::ros2_control_test_assets
+  )
+
   ament_add_gmock(test_controllers_chaining_with_controller_manager
     test/test_controllers_chaining_with_controller_manager.cpp
   )
@@ -161,6 +174,7 @@ if(BUILD_TESTING)
     ${controller_manager_msgs_TARGETS}
   )
   set_tests_properties(test_controller_manager_srvs PROPERTIES TIMEOUT 120)
+
   ament_add_gmock(test_controller_manager_urdf_passing
     test/test_controller_manager_urdf_passing.cpp
   )
@@ -184,6 +198,20 @@ if(BUILD_TESTING)
     DESTINATION lib
   )
 
+  add_library(test_controller_failed_activate SHARED
+  test/test_controller_failed_activate/test_controller_failed_activate.cpp
+  )
+  target_link_libraries(test_controller_failed_activate PUBLIC
+    controller_manager
+  )
+  target_compile_definitions(test_controller_failed_activate PRIVATE "CONTROLLER_MANAGER_BUILDING_DLL")
+  pluginlib_export_plugin_description_file(
+    controller_interface test/test_controller_failed_activate/test_controller_failed_activate.xml)
+  install(
+    TARGETS test_controller_failed_activate
+    DESTINATION lib
+  )
+
   ament_add_gmock(test_release_interfaces
     test/test_release_interfaces.cpp
     APPEND_ENV AMENT_PREFIX_PATH=${ament_index_build_path}_$<CONFIG>
@@ -192,6 +220,7 @@ if(BUILD_TESTING)
     controller_manager
     test_controller
     test_controller_with_interfaces
+    test_controller_failed_activate
     ros2_control_test_assets::ros2_control_test_assets
   )
 
@@ -206,6 +235,19 @@ if(BUILD_TESTING)
   )
   target_compile_definitions(
     test_spawner_unspawner
+    PRIVATE PARAMETERS_FILE_PATH="${CMAKE_CURRENT_LIST_DIR}/test/")
+
+  ament_add_gmock(test_advanced_spawner
+    test/test_advanced_spawner.cpp
+    TIMEOUT 180
+  )
+  target_link_libraries(test_advanced_spawner
+    controller_manager
+    test_controller
+    ros2_control_test_assets::ros2_control_test_assets
+  )
+  target_compile_definitions(
+    test_advanced_spawner
     PRIVATE PARAMETERS_FILE_PATH="${CMAKE_CURRENT_LIST_DIR}/test/")
 
   ament_add_gmock(test_hardware_spawner
@@ -232,6 +274,7 @@ if(BUILD_TESTING)
   install(FILES test/test_ros2_control_node.yaml
     DESTINATION test)
   ament_add_pytest_test(test_ros2_control_node test/test_ros2_control_node_launch.py)
+  ament_add_pytest_test(test_test_utils test/test_test_utils.py)
 endif()
 
 install(

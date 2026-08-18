@@ -2,6 +2,74 @@
 Changelog for package joint_limits
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+4.45.2 (2026-05-12)
+-------------------
+* Fix std::clamp regression on Ubuntu 26.04 (`#3275 <https://github.com/ros-controls/ros2_control/issues/3275>`_) (`#3280 <https://github.com/ros-controls/ros2_control/issues/3280>`_)
+* Contributors: mergify[bot]
+
+4.45.1 (2026-04-24)
+-------------------
+* Fix LNK2005 in joint*limiter (`#3243 <https://github.com/ros-controls/ros2_control/issues/3243>`_) (`#3245 <https://github.com/ros-controls/ros2_control/issues/3245>`_)
+* Contributors: mergify[bot]
+
+4.45.0 (2026-04-17)
+-------------------
+
+4.44.0 (2026-04-02)
+-------------------
+* Consistently add <cmath> include with define for windows (backport `#3061 <https://github.com/ros-controls/ros2_control/issues/3061>`_) (`#3066 <https://github.com/ros-controls/ros2_control/issues/3066>`_)
+* Contributors: mergify[bot]
+
+4.43.0 (2026-02-03)
+-------------------
+* Fix disabling joint limits via URDF (`#2992 <https://github.com/ros-controls/ros2_control/issues/2992>`_) (`#2996 <https://github.com/ros-controls/ros2_control/issues/2996>`_)
+* Don't throw on position joint limits in case of velocity command (`#2978 <https://github.com/ros-controls/ros2_control/issues/2978>`_) (`#2979 <https://github.com/ros-controls/ros2_control/issues/2979>`_)
+* Contributors: mergify[bot]
+
+4.42.2 (2026-01-10)
+-------------------
+
+4.42.1 (2025-12-30)
+-------------------
+
+4.42.0 (2025-12-29)
+-------------------
+
+4.41.0 (2025-12-10)
+-------------------
+
+4.40.0 (2025-12-01)
+-------------------
+
+4.39.2 (2025-11-09)
+-------------------
+
+4.39.1 (2025-11-03)
+-------------------
+
+4.39.0 (2025-10-27)
+-------------------
+
+4.38.0 (2025-10-03)
+-------------------
+
+4.37.0 (2025-09-12)
+-------------------
+
+4.36.0 (2025-08-26)
+-------------------
+
+4.35.0 (2025-07-31)
+-------------------
+
+4.34.0 (2025-07-21)
+-------------------
+* Fix the crashing joint limiters when used with multiple interfaces (`#2371 <https://github.com/ros-controls/ros2_control/issues/2371>`_) (`#2398 <https://github.com/ros-controls/ros2_control/issues/2398>`_)
+* Contributors: mergify[bot]
+
+4.33.0 (2025-07-02)
+-------------------
+
 4.32.0 (2025-06-06)
 -------------------
 

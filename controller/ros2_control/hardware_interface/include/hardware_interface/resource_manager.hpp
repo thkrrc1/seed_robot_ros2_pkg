@@ -32,7 +32,9 @@
 #include "hardware_interface/system.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
+#include "hardware_interface/types/resource_manager_params.hpp"
 #include "rclcpp/duration.hpp"
+#include "rclcpp/executor.hpp"
 #include "rclcpp/node_interfaces/node_logging_interface.hpp"
 #include "rclcpp/time.hpp"
 
@@ -98,6 +100,19 @@ public:
     const std::string & urdf, rclcpp::Clock::SharedPtr clock, rclcpp::Logger logger,
     bool activate_all = false, const unsigned int update_rate = 100);
 
+  /// Constructor for the Resource Manager.
+  /**
+   * The implementation uses the ResourceManagerParams to load the specified urdf and initializes
+   * the hardware components listed within as well as populate their respective state and command
+   * interfaces.
+   *
+   * \param[in] params ResourceManagerParams containing the parameters for the ResourceManager.
+   * \param[in] load boolean argument indicating if the components should be loaded and
+   * initialized. If false, the ResourceManager will not load any components and will only
+   * initialize the ResourceManager with the given parameters.
+   */
+  explicit ResourceManager(const hardware_interface::ResourceManagerParams & params, bool load);
+
   ResourceManager(const ResourceManager &) = delete;
 
   virtual ~ResourceManager();
@@ -119,8 +134,23 @@ public:
    * \param[in] update_rate update rate of  the main control loop, i.e., of the controller manager.
    * \returns false if URDF validation has failed.
    */
+  [[deprecated(
+    "Use load_and_initialize_components(const ResourceManagerParams & params) "
+    "instead")]] virtual bool
+  load_and_initialize_components(const std::string & urdf, const unsigned int update_rate = 100);
+
+  /// Load resources from on a given URDF.
+  /**
+   * The resource manager can be post-initialized with a given URDF.
+   * This is mainly used in conjunction with the default constructor
+   * in which the URDF might not be present at first initialization.
+   *
+   * \param[in] urdf string containing the URDF.
+   * \param[in] update_rate update rate of  the main control loop, i.e., of the controller manager.
+   * \returns false if URDF validation has failed.
+   */
   virtual bool load_and_initialize_components(
-    const std::string & urdf, const unsigned int update_rate = 100);
+    const hardware_interface::ResourceManagerParams & params);
 
   /**
    * @brief Import joint limiters from the URDF.
@@ -386,8 +416,10 @@ public:
    * \param[in] actuator pointer to the actuator interface.
    * \param[in] hardware_info hardware info
    */
-  void import_component(
-    std::unique_ptr<ActuatorInterface> actuator, const HardwareInfo & hardware_info);
+  [[deprecated(
+    "Use import_component(std::unique_ptr<ActuatorInterface> actuator, "
+    "const HardwareComponentParams & params) instead")]] void
+  import_component(std::unique_ptr<ActuatorInterface> actuator, const HardwareInfo & hardware_info);
 
   /// Import a hardware component which is not listed in the URDF
   /**
@@ -402,8 +434,10 @@ public:
    * \param[in] sensor pointer to the sensor interface.
    * \param[in] hardware_info hardware info
    */
-  void import_component(
-    std::unique_ptr<SensorInterface> sensor, const HardwareInfo & hardware_info);
+  [[deprecated(
+    "Use import_component(std::unique_ptr<SensorInterface> sensor, "
+    "const HardwareComponentParams & params) instead")]] void
+  import_component(std::unique_ptr<SensorInterface> sensor, const HardwareInfo & hardware_info);
 
   /// Import a hardware component which is not listed in the URDF
   /**
@@ -418,14 +452,80 @@ public:
    * \param[in] system pointer to the system interface.
    * \param[in] hardware_info hardware info
    */
+  [[deprecated(
+    "Use import_component(std::unique_ptr<SystemInterface> system, "
+    "const HardwareComponentParams & params) instead")]] void
+  import_component(std::unique_ptr<SystemInterface> system, const HardwareInfo & hardware_info);
+
+  /// Import a hardware component which is not listed in the URDF
+  /**
+   * Components which are initialized outside a URDF can be added post initialization.
+   * Nevertheless, there should still be `HardwareInfo` available for this component,
+   * either parsed from a URDF string (easiest) or filled manually.
+   *
+   * \note this might invalidate existing state and command interfaces and should thus
+   * not be called when a controller is running.
+   * \note given that no hardware_info is available, the component has to be configured
+   * externally and prior to the call to import.
+   * \param[in] actuator pointer to the actuator interface.
+   * \param[in] params Struct of type HardwareComponentParams containing the hardware info
+   * and other parameters for the component.
+   */
   void import_component(
-    std::unique_ptr<SystemInterface> system, const HardwareInfo & hardware_info);
+    std::unique_ptr<ActuatorInterface> actuator, const HardwareComponentParams & params);
+
+  /// Import a hardware component which is not listed in the URDF
+  /**
+   * Components which are initialized outside a URDF can be added post initialization.
+   * Nevertheless, there should still be `HardwareInfo` available for this component,
+   * either parsed from a URDF string (easiest) or filled manually.
+   *
+   * \note this might invalidate existing state and command interfaces and should thus
+   * not be called when a controller is running.
+   * \note given that no hardware_info is available, the component has to be configured
+   * externally and prior to the call to import.
+   * \param[in] sensor pointer to the sensor interface.
+   * \param[in] params Struct of type HardwareComponentParams containing the hardware info
+   * and other parameters for the component.
+   */
+  void import_component(
+    std::unique_ptr<SensorInterface> sensor, const HardwareComponentParams & params);
+
+  /// Import a hardware component which is not listed in the URDF
+  /**
+   * Components which are initialized outside a URDF can be added post initialization.
+   * Nevertheless, there should still be `HardwareInfo` available for this component,
+   * either parsed from a URDF string (easiest) or filled manually.
+   *
+   * \note this might invalidate existing state and command interfaces and should thus
+   * not be called when a controller is running.
+   * \note given that no hardware_info is available, the component has to be configured
+   * externally and prior to the call to import.
+   * \param[in] system pointer to the system interface.
+   * \param[in] params Struct of type HardwareComponentParams containing the hardware info
+   * and other parameters for the component.
+   */
+  void import_component(
+    std::unique_ptr<SystemInterface> system, const HardwareComponentParams & params);
 
   /// Return status for all components.
   /**
    * \return map of hardware names and their status.
    */
   const std::unordered_map<std::string, HardwareComponentInfo> & get_components_status();
+
+  /// Return the unordered map of hard joint limits.
+  /**
+   * \return unordered map of hard joint limits.
+   */
+  const std::unordered_map<std::string, joint_limits::JointLimits> & get_hard_joint_limits() const;
+
+  /// Return the unordered map of soft joint limits.
+  /**
+   * \return unordered map of soft joint limits.
+   */
+  const std::unordered_map<std::string, joint_limits::SoftJointLimits> & get_soft_joint_limits()
+    const;
 
   /// Prepare the hardware components for a new command interface mode
   /**
@@ -542,6 +642,8 @@ protected:
   rclcpp::Clock::SharedPtr get_clock() const;
 
   bool components_are_loaded_and_initialized_ = false;
+  bool allow_controller_activation_with_inactive_hardware_ = false;
+  bool return_failed_hardware_names_on_return_deactivate_write_cycle_ = true;
 
   mutable std::recursive_mutex resource_interfaces_lock_;
   mutable std::recursive_mutex claimed_command_interfaces_lock_;
@@ -553,9 +655,17 @@ private:
 
   void release_command_interface(const std::string & key);
 
+  // Note this was added in #2323 and is a temporary addition to be backwards compatible with the
+  // original constructors. This is planned to be removed in a future PR along with the
+  // aforementioned constructors.
+  hardware_interface::ResourceManagerParams constructParams(
+    rclcpp::Clock::SharedPtr clock, rclcpp::Logger logger, const std::string & urdf = std::string(),
+    bool activate_all = false, unsigned int update_rate = 100);
+
   std::unordered_map<std::string, bool> claimed_command_interface_map_;
 
   std::unique_ptr<ResourceStorage> resource_storage_;
+  hardware_interface::ResourceManagerParams params_;
 
   // Structure to store read and write status so it is not initialized in the real-time loop
   HardwareReadWriteStatus read_write_status;

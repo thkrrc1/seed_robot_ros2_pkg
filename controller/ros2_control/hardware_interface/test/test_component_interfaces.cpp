@@ -56,9 +56,10 @@ using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface
 // BEGIN (Handle export change): for backward compatibility
 class DummyActuator : public hardware_interface::ActuatorInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & /*info*/) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & /*params*/) override
   {
-    // We hardcode the info
+    // We hardcode the params
     return CallbackReturn::SUCCESS;
   }
 
@@ -169,11 +170,12 @@ private:
 
 class DummyActuatorDefault : public hardware_interface::ActuatorInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & params) override
   {
-    // We hardcode the info
+    // We hardcode the params
     if (
-      hardware_interface::ActuatorInterface::on_init(info) !=
+      hardware_interface::ActuatorInterface::on_init(params) !=
       hardware_interface::CallbackReturn::SUCCESS)
     {
       return hardware_interface::CallbackReturn::ERROR;
@@ -190,6 +192,9 @@ class DummyActuatorDefault : public hardware_interface::ActuatorInterface
     {
       set_command("joint1/velocity", 0.0);
     }
+    // interfaces are not available
+    EXPECT_FALSE(has_state("joint1/nonexisting/interface"));
+    EXPECT_FALSE(has_command("joint1/nonexisting/interface"));
     // Should throw as the interface is unknown
     EXPECT_THROW(get_state("joint1/nonexisting/interface"), std::runtime_error);
     EXPECT_THROW(get_command("joint1/nonexisting/interface"), std::runtime_error);
@@ -223,6 +228,10 @@ class DummyActuatorDefault : public hardware_interface::ActuatorInterface
     {
       return hardware_interface::return_type::ERROR;
     }
+    EXPECT_TRUE(has_state("joint1/position"));
+    EXPECT_TRUE(has_state("joint1/velocity"));
+    EXPECT_FALSE(has_command("joint1/position"));  // only velocity command interface
+    EXPECT_TRUE(has_command("joint1/velocity"));
     auto position_state = get_state("joint1/position");
     set_state("joint1/position", position_state + get_command("joint1/velocity"));
     set_state("joint1/velocity", get_command("joint1/velocity"));
@@ -260,9 +269,10 @@ private:
 // BEGIN (Handle export change): for backward compatibility
 class DummySensor : public hardware_interface::SensorInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & /*info*/) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & /*params*/) override
   {
-    // We hardcode the info
+    // We hardcode the params
     return CallbackReturn::SUCCESS;
   }
 
@@ -325,10 +335,11 @@ private:
 
 class DummySensorDefault : public hardware_interface::SensorInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & params) override
   {
     if (
-      hardware_interface::SensorInterface::on_init(info) !=
+      hardware_interface::SensorInterface::on_init(params) !=
       hardware_interface::CallbackReturn::SUCCESS)
     {
       return hardware_interface::CallbackReturn::ERROR;
@@ -340,6 +351,8 @@ class DummySensorDefault : public hardware_interface::SensorInterface
   CallbackReturn on_configure(const rclcpp_lifecycle::State & /*previous_state*/) override
   {
     set_state("sens1/voltage", 0.0);
+    // interfaces are not available
+    EXPECT_FALSE(has_state("joint1/nonexisting/interface"));
     // Should throw as the interface is unknown
     EXPECT_THROW(get_state("joint1/nonexisting/interface"), std::runtime_error);
     EXPECT_THROW(set_state("joint1/nonexisting/interface", 0.0), std::runtime_error);
@@ -358,6 +371,7 @@ class DummySensorDefault : public hardware_interface::SensorInterface
     }
 
     // no-op, static value
+    EXPECT_TRUE(has_state("sens1/voltage"));
     set_state("sens1/voltage", voltage_level_hw_value_);
     return hardware_interface::return_type::OK;
   }
@@ -386,10 +400,11 @@ private:
 
 class DummySensorJointDefault : public hardware_interface::SensorInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & params) override
   {
     if (
-      hardware_interface::SensorInterface::on_init(info) !=
+      hardware_interface::SensorInterface::on_init(params) !=
       hardware_interface::CallbackReturn::SUCCESS)
     {
       return hardware_interface::CallbackReturn::ERROR;
@@ -447,9 +462,10 @@ private:
 // BEGIN (Handle export change): for backward compatibility
 class DummySystem : public hardware_interface::SystemInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & /* info */) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & /* params */) override
   {
-    // We hardcode the info
+    // We hardcode the params
     return CallbackReturn::SUCCESS;
   }
 
@@ -593,10 +609,11 @@ private:
 
 class DummySystemDefault : public hardware_interface::SystemInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & params) override
   {
     if (
-      hardware_interface::SystemInterface::on_init(info) !=
+      hardware_interface::SystemInterface::on_init(params) !=
       hardware_interface::CallbackReturn::SUCCESS)
     {
       return hardware_interface::CallbackReturn::ERROR;
@@ -619,6 +636,9 @@ class DummySystemDefault : public hardware_interface::SystemInterface
         set_command(velocity_commands_[i], 0.0);
       }
     }
+    // interfaces are not available
+    EXPECT_FALSE(has_state("joint1/nonexisting/interface"));
+    EXPECT_FALSE(has_command("joint1/nonexisting/interface"));
     // Should throw as the interface is unknown
     EXPECT_THROW(get_state("joint1/nonexisting/interface"), std::runtime_error);
     EXPECT_THROW(get_command("joint1/nonexisting/interface"), std::runtime_error);
@@ -655,6 +675,8 @@ class DummySystemDefault : public hardware_interface::SystemInterface
 
     for (size_t i = 0; i < 3; ++i)
     {
+      EXPECT_TRUE(has_state(position_states_[i]));
+      EXPECT_TRUE(has_command(velocity_commands_[i]));
       auto current_pos = get_state(position_states_[i]);
       set_state(position_states_[i], current_pos + get_command(velocity_commands_[i]));
       set_state(velocity_states_[i], get_command(velocity_commands_[i]));
@@ -702,9 +724,10 @@ private:
 class DummySystemPreparePerform : public hardware_interface::SystemInterface
 {
   // Override the pure virtual functions with default behavior
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & /* info */) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & /* params */) override
   {
-    // We hardcode the info
+    // We hardcode the params
     return CallbackReturn::SUCCESS;
   }
 
@@ -763,8 +786,11 @@ TEST(TestComponentInterfaces, dummy_actuator)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_actuator_components");
-  auto state =
-    actuator_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = actuator_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -802,14 +828,13 @@ TEST(TestComponentInterfaces, dummy_actuator)
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::INACTIVE, state.label());
 
-  // Read and Write are working because it is INACTIVE
+  // Read should work but write should not update the state because it is INACTIVE
   for (auto step = 0u; step < 10; ++step)
   {
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
 
-    EXPECT_EQ(
-      step * velocity_value, state_interfaces[0]->get_optional().value());  // position value
-    EXPECT_EQ(step ? velocity_value : 0, state_interfaces[1]->get_optional().value());  // velocity
+    EXPECT_EQ(0.0, state_interfaces[0]->get_optional().value());  // position value
+    EXPECT_EQ(0.0, state_interfaces[1]->get_optional().value());  // velocity
 
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.write(TIME, PERIOD));
   }
@@ -824,9 +849,10 @@ TEST(TestComponentInterfaces, dummy_actuator)
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
 
     EXPECT_EQ(
-      (10 + step) * velocity_value,
-      state_interfaces[0]->get_optional().value());                          // position value
-    EXPECT_EQ(velocity_value, state_interfaces[1]->get_optional().value());  // velocity
+      step * velocity_value,
+      state_interfaces[0]->get_optional().value());  // position value
+    EXPECT_EQ(
+      step ? velocity_value : 0.0, state_interfaces[1]->get_optional().value());  // velocity
 
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.write(TIME, PERIOD));
   }
@@ -840,7 +866,7 @@ TEST(TestComponentInterfaces, dummy_actuator)
   {
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
 
-    EXPECT_EQ(20 * velocity_value, state_interfaces[0]->get_optional().value());  // position value
+    EXPECT_EQ(10 * velocity_value, state_interfaces[0]->get_optional().value());  // position value
     EXPECT_EQ(0, state_interfaces[1]->get_optional().value());                    // velocity
 
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.write(TIME, PERIOD));
@@ -865,8 +891,11 @@ TEST(TestComponentInterfaces, dummy_actuator_default)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo dummy_actuator = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    actuator_hw.initialize(dummy_actuator, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = dummy_actuator;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = actuator_hw.initialize(params);
 
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
@@ -925,17 +954,13 @@ TEST(TestComponentInterfaces, dummy_actuator_default)
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_INACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::INACTIVE, state.label());
 
-  // Read and Write are working because it is INACTIVE
+  // Read should work but write should not update the state because it is INACTIVE
   for (auto step = 0u; step < 10; ++step)
   {
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
 
-    EXPECT_EQ(
-      step * velocity_value,
-      state_interfaces[si_joint1_pos]->get_optional().value());  // position value
-    EXPECT_EQ(
-      step ? velocity_value : 0,
-      state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
+    EXPECT_EQ(0.0, state_interfaces[si_joint1_pos]->get_optional().value());  // position value
+    EXPECT_EQ(0.0, state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
 
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.write(TIME, PERIOD));
   }
@@ -950,9 +975,11 @@ TEST(TestComponentInterfaces, dummy_actuator_default)
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
 
     EXPECT_EQ(
-      (10 + step) * velocity_value,
+      step * velocity_value,
       state_interfaces[si_joint1_pos]->get_optional().value());  // position value
-    EXPECT_EQ(velocity_value, state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
+    EXPECT_EQ(
+      step ? velocity_value : 0.0,
+      state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
 
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.write(TIME, PERIOD));
   }
@@ -967,7 +994,7 @@ TEST(TestComponentInterfaces, dummy_actuator_default)
     ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
 
     EXPECT_EQ(
-      20 * velocity_value,
+      10 * velocity_value,
       state_interfaces[si_joint1_pos]->get_optional().value());             // position value
     EXPECT_EQ(0, state_interfaces[si_joint1_vel]->get_optional().value());  // velocity
 
@@ -987,8 +1014,11 @@ TEST(TestComponentInterfaces, dummy_sensor)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_sensor_components");
-  auto state =
-    sensor_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = sensor_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1027,8 +1057,11 @@ TEST(TestComponentInterfaces, dummy_sensor_default)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo voltage_sensor_res = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    sensor_hw.initialize(voltage_sensor_res, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = voltage_sensor_res;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = sensor_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1072,8 +1105,11 @@ TEST(TestComponentInterfaces, dummy_sensor_default_joint)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo sensor_res = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    sensor_hw.initialize(sensor_res, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = sensor_res;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = sensor_hw.initialize(params);
   ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   ASSERT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1121,8 +1157,11 @@ TEST(TestComponentInterfaces, dummy_system)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    system_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = system_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1257,8 +1296,11 @@ TEST(TestComponentInterfaces, dummy_system_default)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo dummy_system = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    system_hw.initialize(dummy_system, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = dummy_system;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = system_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1464,8 +1506,11 @@ TEST(TestComponentInterfaces, dummy_command_mode_system)
     std::make_unique<test_components::DummySystemPreparePerform>());
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    system_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = system_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1498,8 +1543,11 @@ TEST(TestComponentInterfaces, dummy_actuator_read_error_behavior)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_actuator_components");
-  auto state =
-    actuator_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = actuator_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1509,6 +1557,7 @@ TEST(TestComponentInterfaces, dummy_actuator_read_error_behavior)
   state = actuator_hw.activate();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, actuator_hw.get_lifecycle_id());
 
   ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
   ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.write(TIME, PERIOD));
@@ -1523,6 +1572,7 @@ TEST(TestComponentInterfaces, dummy_actuator_read_error_behavior)
   state = actuator_hw.get_lifecycle_state();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
+  ASSERT_EQ(actuator_hw.get_lifecycle_id(), actuator_hw.get_lifecycle_state().id());
 
   // activate again and expect reset values
   state = actuator_hw.configure();
@@ -1532,6 +1582,7 @@ TEST(TestComponentInterfaces, dummy_actuator_read_error_behavior)
   state = actuator_hw.activate();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, actuator_hw.get_lifecycle_id());
 
   ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.read(TIME, PERIOD));
   ASSERT_EQ(hardware_interface::return_type::OK, actuator_hw.write(TIME, PERIOD));
@@ -1546,11 +1597,13 @@ TEST(TestComponentInterfaces, dummy_actuator_read_error_behavior)
   state = actuator_hw.get_lifecycle_state();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, actuator_hw.get_lifecycle_id());
 
   // can not change state anymore
   state = actuator_hw.configure();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, actuator_hw.get_lifecycle_id());
 }
 // END
 
@@ -1567,8 +1620,11 @@ TEST(TestComponentInterfaces, dummy_actuator_default_read_error_behavior)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo dummy_actuator = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    actuator_hw.initialize(dummy_actuator, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = dummy_actuator;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = actuator_hw.initialize(params);
 
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
@@ -1633,8 +1689,11 @@ TEST(TestComponentInterfaces, dummy_actuator_write_error_behavior)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_actuator_components");
-  auto state =
-    actuator_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = actuator_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1702,8 +1761,11 @@ TEST(TestComponentInterfaces, dummy_actuator_default_write_error_behavior)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo dummy_actuator = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    actuator_hw.initialize(dummy_actuator, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = dummy_actuator;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = actuator_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1767,8 +1829,11 @@ TEST(TestComponentInterfaces, dummy_sensor_read_error_behavior)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_sensor_components");
-  auto state =
-    sensor_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = sensor_hw.initialize(params);
 
   auto state_interfaces = sensor_hw.export_state_interfaces();
   // Updated because is is INACTIVE
@@ -1776,6 +1841,7 @@ TEST(TestComponentInterfaces, dummy_sensor_read_error_behavior)
   state = sensor_hw.activate();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, sensor_hw.get_lifecycle_id());
 
   ASSERT_EQ(hardware_interface::return_type::OK, sensor_hw.read(TIME, PERIOD));
 
@@ -1789,6 +1855,7 @@ TEST(TestComponentInterfaces, dummy_sensor_read_error_behavior)
   state = sensor_hw.get_lifecycle_state();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, sensor_hw.get_lifecycle_id());
 
   // Noting should change because it is UNCONFIGURED
   for (auto step = 0u; step < 10; ++step)
@@ -1803,6 +1870,7 @@ TEST(TestComponentInterfaces, dummy_sensor_read_error_behavior)
   state = sensor_hw.activate();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, sensor_hw.get_lifecycle_id());
 
   // Initiate unrecoverable error - call read 99 times OK and on 100-time will return error
   for (auto i = 1ul; i < TRIGGER_READ_WRITE_ERROR_CALLS; ++i)
@@ -1814,6 +1882,7 @@ TEST(TestComponentInterfaces, dummy_sensor_read_error_behavior)
   state = sensor_hw.get_lifecycle_state();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, sensor_hw.get_lifecycle_id());
 
   // Noting should change because it is FINALIZED
   for (auto step = 0u; step < 10; ++step)
@@ -1825,6 +1894,7 @@ TEST(TestComponentInterfaces, dummy_sensor_read_error_behavior)
   state = sensor_hw.configure();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, sensor_hw.get_lifecycle_id());
 }
 // END
 
@@ -1840,8 +1910,11 @@ TEST(TestComponentInterfaces, dummy_sensor_default_read_error_behavior)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo voltage_sensor_res = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    sensor_hw.initialize(voltage_sensor_res, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = voltage_sensor_res;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = sensor_hw.initialize(params);
 
   auto state_interfaces = sensor_hw.export_state_interfaces();
   // Updated because is is INACTIVE
@@ -1896,8 +1969,11 @@ TEST(TestComponentInterfaces, dummy_system_read_error_behavior)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    system_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = system_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -1969,8 +2045,11 @@ TEST(TestComponentInterfaces, dummy_system_default_read_error_behavior)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo dummy_system = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    system_hw.initialize(dummy_system, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = dummy_system;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = system_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -2036,8 +2115,11 @@ TEST(TestComponentInterfaces, dummy_system_write_error_behavior)
 
   hardware_interface::HardwareInfo mock_hw_info{};
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    system_hw.initialize(mock_hw_info, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = mock_hw_info;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = system_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
 
@@ -2109,10 +2191,14 @@ TEST(TestComponentInterfaces, dummy_system_default_write_error_behavior)
     hardware_interface::parse_control_resources_from_urdf(urdf_to_test);
   const hardware_interface::HardwareInfo dummy_system = control_resources[0];
   rclcpp::Node::SharedPtr node = std::make_shared<rclcpp::Node>("test_system_components");
-  auto state =
-    system_hw.initialize(dummy_system, node->get_logger(), node->get_node_clock_interface());
+  hardware_interface::HardwareComponentParams params;
+  params.hardware_info = dummy_system;
+  params.clock = node->get_clock();
+  params.logger = node->get_logger();
+  auto state = system_hw.initialize(params);
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, system_hw.get_lifecycle_id());
 
   auto state_interfaces = system_hw.export_state_interfaces();
   auto command_interfaces = system_hw.export_command_interfaces();
@@ -2120,6 +2206,7 @@ TEST(TestComponentInterfaces, dummy_system_default_write_error_behavior)
   state = system_hw.activate();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, system_hw.get_lifecycle_id());
 
   ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
   ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
@@ -2134,6 +2221,7 @@ TEST(TestComponentInterfaces, dummy_system_default_write_error_behavior)
   state = system_hw.get_lifecycle_state();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::UNCONFIGURED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_UNCONFIGURED, system_hw.get_lifecycle_id());
 
   // activate again and expect reset values
   state = system_hw.configure();
@@ -2148,6 +2236,7 @@ TEST(TestComponentInterfaces, dummy_system_default_write_error_behavior)
   state = system_hw.activate();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::ACTIVE, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE, system_hw.get_lifecycle_id());
 
   ASSERT_EQ(hardware_interface::return_type::OK, system_hw.read(TIME, PERIOD));
   ASSERT_EQ(hardware_interface::return_type::OK, system_hw.write(TIME, PERIOD));
@@ -2162,11 +2251,13 @@ TEST(TestComponentInterfaces, dummy_system_default_write_error_behavior)
   state = system_hw.get_lifecycle_state();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, system_hw.get_lifecycle_id());
 
   // can not change state anymore
   state = system_hw.configure();
   EXPECT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, state.id());
   EXPECT_EQ(hardware_interface::lifecycle_state_names::FINALIZED, state.label());
+  ASSERT_EQ(lifecycle_msgs::msg::State::PRIMARY_STATE_FINALIZED, system_hw.get_lifecycle_id());
 }
 
 int main(int argc, char ** argv)

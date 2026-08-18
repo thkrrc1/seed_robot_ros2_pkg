@@ -15,8 +15,11 @@
 #ifndef HARDWARE_INTERFACE__HARDWARE_INFO_HPP_
 #define HARDWARE_INTERFACE__HARDWARE_INFO_HPP_
 
+#include <fmt/compile.h>
+
 #include <string>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 #include "joint_limits/joint_limits.hpp"
@@ -44,12 +47,12 @@ struct InterfaceInfo
   std::string data_type = "double";
   /// (Optional) If the handle is an array, the size of the array.
   int size;
-  /// (Optional) enable or disable the limits for the command interfaces
-  bool enable_limits;
   /// (Optional) Key-value pairs of command/stateInterface parameters. This is
   /// useful for drivers that operate on protocols like modbus, where each
   /// interface needs own address(register), datatype, etc.
   std::unordered_map<std::string, std::string> parameters;
+  /// (Optional) enable or disable the limits for the command interfaces
+  bool enable_limits;
 };
 
 /// @brief This structure stores information about a joint that is mimicking another joint
@@ -82,6 +85,9 @@ struct ComponentInfo
 
   ///  Hold the value of the mimic attribute if given, NOT_SET otherwise
   MimicAttribute is_mimic = MimicAttribute::NOT_SET;
+
+  /// Whether limits are enabled for this component (set at joint level with <limits enable="..."/>)
+  bool enable_limits = true;
 
   /**
    * Name of the command interfaces that can be set, e.g. "position", "velocity", etc.
@@ -133,6 +139,9 @@ struct TransmissionInfo
 /**
  * Hardware handles supported types
  */
+
+using HANDLE_DATATYPE = std::variant<
+  std::monostate, double, float, bool, uint8_t, int8_t, uint16_t, int16_t, uint32_t, int32_t>;
 class HandleDataType
 {
 public:
@@ -140,7 +149,14 @@ public:
   {
     UNKNOWN = -1,
     DOUBLE,
-    BOOL
+    FLOAT32,
+    BOOL,
+    UINT8,
+    INT8,
+    UINT16,
+    INT16,
+    UINT32,
+    INT32,
   };
 
   HandleDataType() = default;
@@ -154,6 +170,34 @@ public:
     else if (data_type == "bool")
     {
       value_ = BOOL;
+    }
+    else if (data_type == "float32")
+    {
+      value_ = FLOAT32;
+    }
+    else if (data_type == "uint8")
+    {
+      value_ = UINT8;
+    }
+    else if (data_type == "int8")
+    {
+      value_ = INT8;
+    }
+    else if (data_type == "uint16")
+    {
+      value_ = UINT16;
+    }
+    else if (data_type == "int16")
+    {
+      value_ = INT16;
+    }
+    else if (data_type == "uint32")
+    {
+      value_ = UINT32;
+    }
+    else if (data_type == "int32")
+    {
+      value_ = INT32;
     }
     else
     {
@@ -179,8 +223,81 @@ public:
         return "double";
       case BOOL:
         return "bool";
+      case FLOAT32:
+        return "float32";
+      case UINT8:
+        return "uint8";
+      case INT8:
+        return "int8";
+      case UINT16:
+        return "uint16";
+      case INT16:
+        return "int16";
+      case UINT32:
+        return "uint32";
+      case INT32:
+        return "int32";
       default:
         return "unknown";
+    }
+  }
+
+  /**
+   * @brief Check if the HandleDataType can be casted to double.
+   * @return True if the HandleDataType can be casted to double, false otherwise.
+   * @note Once we add support for more data types, this function should be updated
+   */
+  bool is_castable_to_double() const
+  {
+    switch (value_)
+    {
+      case DOUBLE:   // fallthrough
+      case FLOAT32:  // fallthrough
+      case BOOL:     // fallthrough
+      case UINT8:    // fallthrough
+      case INT8:     // fallthrough
+      case UINT16:   // fallthrough
+      case INT16:    // fallthrough
+      case UINT32:   // fallthrough
+      case INT32:
+        return true;
+      default:
+        return false;  // unknown type cannot be converted
+    }
+  }
+
+  /**
+   * @brief Cast the given value to double.
+   * @param value The value to be casted.
+   * @return The casted value.
+   * @throw std::runtime_error if the HandleDataType cannot be casted to double.
+   * @note Once we add support for more data types, this function should be updated
+   */
+  double cast_to_double(const HANDLE_DATATYPE & value) const
+  {
+    switch (value_)
+    {
+      case DOUBLE:
+        return std::get<double>(value);
+      case FLOAT32:
+        return static_cast<double>(std::get<float>(value));
+      case BOOL:
+        return static_cast<double>(std::get<bool>(value));
+      case UINT8:
+        return static_cast<double>(std::get<uint8_t>(value));
+      case INT8:
+        return static_cast<double>(std::get<int8_t>(value));
+      case UINT16:
+        return static_cast<double>(std::get<uint16_t>(value));
+      case INT16:
+        return static_cast<double>(std::get<int16_t>(value));
+      case UINT32:
+        return static_cast<double>(std::get<uint32_t>(value));
+      case INT32:
+        return static_cast<double>(std::get<int32_t>(value));
+      default:
+        throw std::runtime_error(
+          fmt::format(FMT_COMPILE("Data type : '{}' cannot be casted to double."), to_string()));
     }
   }
 
@@ -229,6 +346,18 @@ struct InterfaceDescription
   HandleDataType get_data_type() const { return HandleDataType(interface_info.data_type); }
 };
 
+struct HardwareAsyncParams
+{
+  /// Thread priority for the async worker thread
+  int thread_priority = 50;
+  /// Scheduling policy for the async worker thread
+  std::string scheduling_policy = "synchronized";
+  /// CPU affinity cores for the async worker thread
+  std::vector<int> cpu_affinity_cores = {};
+  /// Whether to print warnings when the async thread doesn't meet its deadline
+  bool print_warnings = true;
+};
+
 /// This structure stores information about hardware defined in a robot's URDF.
 struct HardwareInfo
 {
@@ -242,8 +371,10 @@ struct HardwareInfo
   unsigned int rw_rate;
   /// Component is async
   bool is_async;
-  /// Async thread priority
+  /// [[deprecated("Use async_params instead.")]] Async thread priority
   int thread_priority;
+  /// Async Parameters
+  HardwareAsyncParams async_params;
   /// Name of the pluginlib plugin of the hardware that will be loaded.
   std::string hardware_plugin_name;
   /// (Optional) Key-value pairs for hardware parameters.

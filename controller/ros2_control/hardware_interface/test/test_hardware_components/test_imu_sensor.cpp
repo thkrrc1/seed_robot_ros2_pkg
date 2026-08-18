@@ -17,6 +17,9 @@
  */
 
 #include <algorithm>
+#ifndef _USE_MATH_DEFINES
+#define _USE_MATH_DEFINES
+#endif
 #include <cmath>
 #include <random>
 #include <vector>
@@ -31,9 +34,10 @@ namespace test_hardware_components
 {
 class TestIMUSensor : public SensorInterface
 {
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & sensor_info) override
+  CallbackReturn on_init(
+    const hardware_interface::HardwareComponentInterfaceParams & params) override
   {
-    if (SensorInterface::on_init(sensor_info) != CallbackReturn::SUCCESS)
+    if (SensorInterface::on_init(params) != CallbackReturn::SUCCESS)
     {
       return CallbackReturn::ERROR;
     }
