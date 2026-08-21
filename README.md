@@ -127,7 +127,7 @@ $ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets
   $ ros2 service call /aero_controller/get_version aero_controller_msgs/srv/GetVersion
   ```
 - msid=1, version='0001072500'以降である場合  
-  "seed_robot_ros2_pkg/robots/(ロボット名)/config/navigation/navigation.yaml"内の"encoder_reset"-"enable"の"true" → "false"にして下さい。
+  "seed_robot_ros2_pkg/robots/(ロボット名)/config/controllers/controller_settings_mechanum.yaml"内の"encoder_reset"-"enable"の"true" → "false"にして下さい。
   ```
   encoder_reset:
    enable: false  #encoder reset      
