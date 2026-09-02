@@ -41,14 +41,13 @@
     ```
 
 ## 3.seed_robot_ros2_pkgインストール
-1. ワークスペース作成 
-    (ワークスペース名は任意で良いですがここでは"ros2_ws"として説明します)
+1. ワークスペース作成
     ```
-    $ mkdir -p ~/ros2_ws/src
+    $ mkdir -p ~/ros2/jazzy/src
     ```
 2. seed_ros2_pkgをインストール
     ```terminal
-    $ cd ~/ros2_ws/src
+    $ cd ~/ros2/jazzy/src
     $ git clone --recurse-submodules https://github.com/thkrrc1/seed_robot_ros2_pkg.git
     ```
 3. その他パッケージインストール
@@ -68,12 +67,12 @@
     ```
 4. パッチの適用
     ```
-    $ cd ~/ros2_ws/src/seed_robot_ros2_pkg
+    $ cd ~/ros2/jazzy/src/seed_robot_ros2_pkg
     $ patch -p0 < patch/urg_node2.patch
     ```
 5. ロボットプロジェクトのクローン
     ```
-    $ cd ~/ros2_ws/src/seed_robot_ros2_pkg/robots
+    $ cd ~/ros2/jazzy/src/seed_robot_ros2_pkg/robots
     $ python3 clone_robots.py
     ```
     実行すると下記メッセージが表示されるので、ロボット名を入力してください。（例：lifter_mover）  
@@ -88,9 +87,9 @@
     ```
 6. ビルド
     ```
-    $ cd ~/ros2_ws
+    $ cd ~/ros2/jazzy
     $ colcon build --symlink-install
-    $ cd ~/ros2_ws
+    $ cd ~/ros2/jazzy
     $ source install/setup.bash
     ```
 ## 4.Udevの設定（ロボットを持っている場合）
@@ -98,7 +97,7 @@
 (``/etc/udev/rules.d/90-aero.rules``がすでにある場合、こちらの作業は必要ありません。)
 1. スクリプトの実行
     ```terminal
-    $ cd ~/ros2_ws/src/seed_robot_ros2_pkg/scripts
+    $ cd ~/ros2/jazzy/src/seed_robot_ros2_pkg/scripts
     $ ./make_udev_install.sh
     ```
     実行すると下記メッセージが表示されます。
