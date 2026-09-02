@@ -63,6 +63,8 @@ private:
     seed_ros2_controller::command_interface::OtherCommandInterface other_interf;
     seed_ros2_controller::command_interface::StatusInterface status_interf;
 
+    double tgt_time_sec = 0.0; //[ms]  controller_manager 1.0/update_rate [ms] に合わせる,0の場合は常にアクチュエータ毎の最高速を要求する指令になる。
+
     LOGGER_INIT
 };
 

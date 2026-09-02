@@ -24,26 +24,37 @@ bool makeBuffImpl<aero3::SendBuff>(BuffRaw &buff, int msid, const std::vector<st
     reqdata->mcid = 0x00;
 
     bool data_exist = false;
-    for (size_t idx = 0; idx < req.joint_name.size(); ++idx) {
-        auto itr = std::find(jnames.begin(), jnames.end(), req.joint_name[idx]);
-        if (itr != jnames.end() && idx < req.max.size() && idx < req.min.size()) {
-            uint8_t max = req.max[idx];
-            uint8_t min = req.min[idx];
-            int send_idx = std::distance(jnames.begin(), itr);
-            reqdata->setData(max, send_idx * 2);
-            reqdata->setData(min, send_idx * 2 + 1);
+    if (req.joint_name.size() == 1) {
+        auto itr = std::find(jnames.begin(), jnames.end(), req.joint_name[0]);
+        if (itr != jnames.end()) {
+            int send_idx = std::distance(jnames.begin(), itr) + 1;
+            reqdata->mcid = static_cast<uint8_t>(send_idx);
+            uint8_t max = req.max[0];
+            uint8_t min = req.min[0];
+            reqdata->setData(max, 0);
+            reqdata->setData(min, 1);
             data_exist = true;
         }
+    } else {
+        for (size_t idx = 0; idx < req.joint_name.size(); ++idx) {
+            auto itr = std::find(jnames.begin(), jnames.end(), req.joint_name[idx]);
+            if (itr != jnames.end() && idx < req.max.size() && idx < req.min.size()) {
+                uint8_t max = req.max[idx];
+                uint8_t min = req.min[idx];
+                int send_idx = std::distance(jnames.begin(), itr);
+                reqdata->setData(max, send_idx * 2);
+                reqdata->setData(min, send_idx * 2 + 1);
+                data_exist = true;
+            }
+        }
+        reqdata->cram(); //データを送信する場合は、全軸分送る
     }
-
 
     if (!data_exist) {
         return false;
     }
 
-    reqdata->cram(); //データを送信する場合は、全軸分送る
     reqdata->addChecksum();
-
     buff.size = reqdata->getTotalLen();
 
     return true;
@@ -56,7 +67,7 @@ bool makeBuffImpl<aero4::SendBuff>(BuffRaw &buff, int msid, const std::vector<st
     reqdata->init();
     reqdata->header.data[0] = 0xFD;
     reqdata->header.data[1] = 0xDF;
-    reqdata->cmd = 0x21;
+    reqdata->cmd = 0x01;
     reqdata->msid = msid;
 
     bool data_exist = false;

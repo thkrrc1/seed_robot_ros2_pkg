@@ -149,7 +149,7 @@ hardware_interface::return_type RobotHardware::read(const rclcpp::Time &time, co
 }
 
 hardware_interface::return_type RobotHardware::write(const rclcpp::Time &time, const rclcpp::Duration &period) {
-    driver_->sendPosition(pos_send_, 0);
+    driver_->sendPosition(pos_send_, tgt_time_sec);
     driver_->sendVelocity(vel_send_);
     driver_->sendOtherCommands(other_cmds_send_);
     driver_->sendIdleCommand();

@@ -34,6 +34,13 @@ controller_interface::CallbackReturn AeroController::on_configure(const rclcpp_l
     verget_srv = get_node()->create_service < aero_controller_msgs::srv::GetVersion >(std::string(get_node()->get_name()) + "/get_version",  std::bind(&AeroController::getVersion, this, _1, _2));
     adget_srv = get_node()->create_service < aero_controller_msgs::srv::GetAd >(std::string(get_node()->get_name()) + "/get_ad",  std::bind(&AeroController::getAd, this, _1, _2));
     canthrough_srv = get_node()->create_service < aero_controller_msgs::srv::CanThrough >(std::string(get_node()->get_name()) + "/can_through",  std::bind(&AeroController::canThrough, this, _1, _2)); 
+
+    servo_srv->configure_introspection(get_node()->get_clock(),  rclcpp::SystemDefaultsQoS(), rcl_service_introspection_state_t::RCL_SERVICE_INTROSPECTION_CONTENTS);
+    scur_srv->configure_introspection(get_node()->get_clock(),  rclcpp::SystemDefaultsQoS(), rcl_service_introspection_state_t::RCL_SERVICE_INTROSPECTION_CONTENTS);
+    rscr_srv->configure_introspection(get_node()->get_clock(),  rclcpp::SystemDefaultsQoS(), rcl_service_introspection_state_t::RCL_SERVICE_INTROSPECTION_CONTENTS);
+    verget_srv->configure_introspection(get_node()->get_clock(),  rclcpp::SystemDefaultsQoS(), rcl_service_introspection_state_t::RCL_SERVICE_INTROSPECTION_CONTENTS);
+    adget_srv->configure_introspection(get_node()->get_clock(),  rclcpp::SystemDefaultsQoS(), rcl_service_introspection_state_t::RCL_SERVICE_INTROSPECTION_CONTENTS);
+    canthrough_srv->configure_introspection(get_node()->get_clock(),  rclcpp::SystemDefaultsQoS(), rcl_service_introspection_state_t::RCL_SERVICE_INTROSPECTION_CONTENTS);
     return controller_interface::CallbackReturn::SUCCESS;
 }
 

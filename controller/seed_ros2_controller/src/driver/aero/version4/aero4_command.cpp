@@ -49,7 +49,8 @@ PARSE_RESULT AeroCommand::parseData(uint8_t *recvd) {
             for (int idx = 0; idx + 1 < aero_cmd->datalen() - 2; idx += 2) {
                 aero_cmd->get(idx, tgt_state->mcval[jidx++].current);
             }
-            result = PARSE_RESULT::CMD_PARSED;
+            //current_controllerの追加に伴いCMD_PARSED->CMD_OHERに変更
+            result = PARSE_RESULT::CMD_OTHER;
         } else if (aero_cmd->cmd == 0x43) {
             //温度・電圧取得返信
             int jidx = 0;

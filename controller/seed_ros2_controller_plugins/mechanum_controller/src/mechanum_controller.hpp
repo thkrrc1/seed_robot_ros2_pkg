@@ -82,6 +82,7 @@ namespace mechanum_controller
 
             vel_sub_nav = get_node()->create_subscription<geometry_msgs::msg::Twist>("~/cmd_vel_nav", rclcpp::SystemDefaultsQoS(), std::bind(&MechanumController::cmdVelNavCallback, this, std::placeholders::_1));
             vel_sub_teleop = get_node()->create_subscription<geometry_msgs::msg::Twist>("~/cmd_vel_teleop", rclcpp::SystemDefaultsQoS(), std::bind(&MechanumController::cmdVelTeleopCallback, this, std::placeholders::_1));
+            // mppi_target_poses_sub_ = get_node()->create_subscription < geometry_msgs::msg::PoseArray > ("controller_server/mppi_target_poses", rclcpp::SystemDefaultsQoS(), std::bind(&MPPIConnection::mppiTargetPoseCallback, this, std::placeholders::_1));
             last_teleop_sub_time = get_node()->get_clock()->now();
 
             kinema.init(params.size.wheel_radius, params.size.tread, params.size.wheel_base);
@@ -213,6 +214,16 @@ namespace mechanum_controller
             last_teleop_sub_time = now;
             cmdVelRequest(now, *command);
         }
+
+         //MPPIの目標軌道点列
+        // void mppiTargetPoseCallback(const geometry_msgs::msg::PoseArray::SharedPtr pose) {
+        //     speed_rate_ = 1.0;
+        //     std::lock_guard lock(mtx_);
+        //     interpolator_.set_pose_array(map_to_costmap_, pose); // map座標系でのMPPIの軌道点列
+        //     mppi_dt_ = model_dt_ / speed_rate_; // 速度率だけ、dtを伸ばす
+        //     lookahead_time_ = 0.1 + speed_rate_ * 0.4; // これだけ[s]先の目標値を見る
+        //     request_time_ = get_node()->get_clock()->now();
+        // }
 
         void processStopAndReset()
         {
@@ -500,6 +511,7 @@ namespace mechanum_controller
 
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr vel_sub_teleop = nullptr;
         rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr vel_sub_nav = nullptr;
+        // rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr mppi_target_poses_sub_ = nullptr;
         realtime_tools::RealtimeBuffer<geometry_msgs::msg::TwistStamped> vel_msg;
 
         rclcpp::Duration cmd_vel_timeout = rclcpp::Duration(0, 500000000); // 受信したcmd_velが有効とみなす時間のタイムアウト
@@ -523,6 +535,7 @@ namespace mechanum_controller
 
         Odometry odom;
         Kinematics kinema;
+        // Pose map_to_costmap_;
 
         rclcpp::TimerBase::SharedPtr stop_watch_timer_;
 
@@ -546,6 +559,7 @@ namespace mechanum_controller
         rclcpp::Time odom_mask_until_;
         std::atomic<bool> odom_mask_active_ = false;
         double odom_mask_sec_ = 0.3;  // マスク時間　調整要
+        // speed_rate_ = 1.0;
 
         // ---- local velocity deadband (停止中ノイズ対策) ----
         double eps_vx_  = 1e-3;  // 実機のノイズに合わせて調整

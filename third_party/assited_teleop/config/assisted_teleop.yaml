@@ -1,0 +1,45 @@
+assisted_teleop:
+  ros__parameters:
+    # teleop_twist_joy should publish to this topic.
+    input_cmd_vel_topic: /mechanum_controller/cmd_vel_teleop_raw
+
+    # mechanum_controller subscribes to ~/cmd_vel_teleop, which usually expands to this.
+    output_cmd_vel_topic: /mechanum_controller/cmd_vel_teleop
+
+    # Nav2 local costmap topics.
+    costmap_topic: /local_costmap/costmap
+    footprint_topic: /local_costmap/published_footprint
+
+    base_frame: base_link
+    costmap_frame: odom
+
+    controller_frequency: 100.0
+    cmd_vel_timeout: 0.5
+
+    # Similar role to ROS1 assisted_teleop search parameters.
+    num_x_samples: 20
+    num_th_samples: 10
+    theta_range: 0.7
+
+    # If no safe trajectory is found, output velocity can be reduced to these limits.
+    # Set both to 0.0 to stop when no safe trajectory is found.
+    translational_collision_speed: 0.03
+    rotational_collision_speed: 0.10
+
+    # Forward simulation for vx/vy/wz.
+    sim_time: 1.5
+    sim_granularity: 0.05
+
+    # Used before /local_costmap/published_footprint is received.
+    footprint_length: 1.0
+    footprint_width: 0.6
+
+    # Internal Nav2 cost scale is 0-254.
+    # Cost above slow_cost is treated as unsafe when use_cost_scaling=true.
+    slow_cost: 190.0
+    stop_cost: 254.0
+    min_scale: 0.2
+    use_cost_scaling: false
+
+    # false = stop if costmap/footprint/tf are unavailable.
+    fail_open_without_costmap: false

@@ -18,4 +18,10 @@
     </description>
   </class>
 
+  <class name="aero_controller/CurrentController" type="aero_controller::CurrentController" base_class_type="controller_interface::ControllerInterface">
+    <description>
+      current controller
+    </description>
+  </class>
+
 </library>

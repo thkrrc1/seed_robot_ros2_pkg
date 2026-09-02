@@ -9,10 +9,6 @@
     $ sudo apt update
     $ sudo apt upgrade
     ```
-* __注意事項 :__  
-      ros2_controlのバージョン不整合によるクラッシュ（26/7/16 時点）を確認しております。  
-      26/8/7より前の当パッケージを使用されている場合は``git pull``でファイルを更新するか再度 "3.seed_robot_ros2_pkgインストール"を実行してください
-   
 2. pip3インストール
     ```terminal
     $ sudo apt install python3-pip
@@ -117,19 +113,3 @@
 $ sudo apt install ros-jazzy-ros2-controllers ros-jazzy-ros2-control-test-assets ros-jazzy-ros2-control 
 ```
 
-## 注意事項  
-- ファームウェアのバージョンについて  
-  実機に書き込まれているファームウェアのバージョンによっては取得できない情報がありますので予めご了承下さい。  
-  また、バージョンによってはパラメータの変更が必要となる場合がございますのでご注意下さい。  
-  ご不明点ございましたらTHKまでお問い合わせ下さい。  
-  バージョンの確認方法は以下のコマンドを実行して確認して下さい。
-  ```
-  $ ros2 service call /aero_controller/get_version aero_controller_msgs/srv/GetVersion
-  ```
-- msid=1, version='0001072500'以降である場合  
-  "seed_robot_ros2_pkg/robots/(ロボット名)/config/controllers/controller_settings_mechanum.yaml"内の"encoder_reset"-"enable"の"true" → "false"にして下さい。
-  ```
-  encoder_reset:
-   enable: false  #encoder reset      
-   msid: 1       #mover
-  ```

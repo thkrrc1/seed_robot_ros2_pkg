@@ -15,6 +15,7 @@ set(ROS_PKGS ${ROS_PKGS}
     seed_ros2_controller
     aero_controller_msgs
     std_srvs
+    sensor_msgs
 )
 
 foreach(Pkg IN ITEMS ${ROS_PKGS})
